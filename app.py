@@ -1,15 +1,109 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import os
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 # Page Config
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
 
-# App Header
-st.title("🖥️ NOOR CYBER WORLD")
-st.caption("Center Management & Renewal Reminder System")
+# CUSTOM CSS FOR STYLING
+st.markdown("""
+    <style>
+    /* Main Background Gradient matching logo theme */
+    .stApp {
+        background: linear-gradient(135deg, #0a0a0c 0%, #16181f 50%, #0d1117 100%);
+        color: #ffffff;
+    }
+    
+    /* Header Card Style */
+    .header-box {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 15px 25px;
+        margin-bottom: 25px;
+        border: 1px solid rgba(230, 30, 30, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .header-title {
+        margin: 0;
+        color: #ff2a2a;
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-shadow: 0 0 10px rgba(255, 42, 42, 0.3);
+    }
+    
+    .header-subtitle {
+        margin: 0;
+        color: #3b82f6;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 1px;
+    }
+
+    /* Metric Cards */
+    div[data-testid="stMetric"] {
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        padding: 15px;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Tab Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        color: #ffffff;
+        padding: 8px 16px;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: #ff2a2a !important;
+        color: #ffffff !important;
+        font-weight: bold;
+    }
+
+    /* Form & Input Styling */
+    .stTextInput input, .stSelectbox select, .stNumberInput input {
+        border-radius: 8px !important;
+    }
+
+    /* Primary Button */
+    .stButton>button {
+        border-radius: 8px;
+        font-weight: bold;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# App Header with Local Logo Support
+col_logo, col_title = st.columns([1, 5])
+
+with col_logo:
+    if os.path.exists("logo.png"):
+        st.image("logo.png", width=120)
+    else:
+        st.write("🖥️")
+
+with col_title:
+    st.markdown("""
+        <div>
+            <h1 class="header-title">NOOR CYBER WORLD</h1>
+            <p class="header-subtitle">Center Management & Renewal Reminder System</p>
+        </div>
+    """, unsafe_allow_html=True)
 
 # Initialize SQLite Database
 def init_db():
