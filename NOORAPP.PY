@@ -1,0 +1,110 @@
+import streamlit as st
+import pandas as pd
+from datetime import datetime, timedelta
+
+st.set_page_config(page_title="Noor Cyber World", page_icon="🖥️", layout="wide")
+
+# Custom Title Header
+st.title("🖥️ NOOR CYBER WORLD")
+st.caption("Center Management & Automatic Renewal Reminder System")
+
+# Initialize Session State Data (Temporary Storage for Testing)
+if "records" not in st.session_state:
+    st.session_state.records = [
+        {"नाम": "रहीम शेख", "मोबाइल": "9800000000", "सर्विस": "Vehicle Insurance", "अमाउंट": 1500, "पेमेंट": "Online", "एक्सपायरी": (datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d")},
+        {"नाम": "अमित शर्मा", "मोबाइल": "9700000000", "सर्विस": "Food License", "अमाउंट": 500, "पेमेंट": "Cash", "एक्सपायरी": (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")}
+    ]
+
+# Sidebar Navigation Menu
+menu = ["📊 Dashboard", "➕ New Entry", "🔔 Renewal Alerts (15 Days)", "💰 Cashbook Report"]
+choice = st.sidebar.selectbox("नेविगेशन मेनू", menu)
+
+# 1. DASHBOARD
+if choice == "📊 Dashboard":
+    st.subheader("आज का ओवरव्यू (Daily Overview)")
+    df = pd.DataFrame(st.session_state.records)
+    
+    total_cash = df[df["पेमेंट"] == "Cash"]["अमाउंट"].sum() if not df.empty else 0
+    total_online = df[df["पेमेंट"] == "Online"]["अमाउंट"].sum() if not df.empty else 0
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("कुल कलेक्शन (Total)", f"₹ {total_cash + total_online}")
+    col2.metric("कैश कलेक्शन (Cash)", f"₹ {total_cash}")
+    col3.metric("ऑनलाइन/UPI (Online)", f"₹ {total_online}")
+    
+    st.markdown("---")
+    st.subheader("📋 हाल ही में की गई एंट्रीज़")
+    st.dataframe(df, use_container_width=True)
+
+# 2. NEW ENTRY FORM
+elif choice == "➕ New Entry":
+    st.subheader("ग्राहक एवं नई सर्विस एंट्री")
+    with st.form("entry_form", clear_on_submit=True):
+        col_a, col_b = st.columns(2)
+        with col_a:
+            name = st.text_input("ग्राहक का नाम (Customer Name)*")
+            mobile = st.text_input("मोबाइल नंबर (Mobile Number)*")
+            service = st.selectbox("सर्विस चुनें", ["PAN Card", "Vehicle Insurance", "DL/RC", "Food License", "Passport", "Income Certificate", "Aadhaar Work", "Other"])
+        
+        with col_b:
+            amount = st.number_input("फीस / बिल (₹)*", min_value=0, step=10)
+            pay_mode = st.radio("पेमेंट मोड", ["Cash", "Online"])
+            has_expiry = st.checkbox("क्या इसका रिन्यूअल होता है? (जैसे Insurance, DL)")
+            expiry_date = None
+            if has_expiry:
+                expiry_date = st.date_input("एक्सपायरी डेट (Expiry Date)")
+
+        submitted = st.form_submit_button("💾 डेटा सुरक्षित सेव करें")
+        
+        if submitted:
+            if name and mobile:
+                exp_str = expiry_date.strftime("%Y-%m-%d") if expiry_date else "N/A"
+                new_data = {
+                    "नाम": name,
+                    "मोबाइल": mobile,
+                    "सर्विस": service,
+                    "अमाउंट": amount,
+                    "पेमेंट": pay_mode,
+                    "एक्सपायरी": exp_str
+                }
+                st.session_state.records.append(new_data)
+                st.success(f"✅ {name} की डेटा एंट्री 'Noor Cyber World' सिस्टम में सेव हो गई!")
+            else:
+                st.error("कृपया नाम और मोबाइल नंबर ज़रूर भरें!")
+
+# 3. RENEWAL ALERTS
+elif choice == "🔔 Renewal Alerts (15 Days)":
+    st.subheader("⚠️ अगले 15 दिनों में एक्सपायर होने वाले डॉक्यूमेंट्स")
+    
+    today = datetime.now().date()
+    alerts = []
+    
+    for item in st.session_state.records:
+        if item["एक्सपायरी"] != "N/A":
+            exp_d = datetime.strptime(item["एक्सपायरी"], "%Y-%m-%d").date()
+            days_left = (exp_d - today).days
+            if 0 <= days_left <= 15:
+                alerts.append({
+                    "नाम": item["नाम"],
+                    "मोबाइल": item["मोबाइल"],
+                    "सर्विस": item["सर्विस"],
+                    "एक्सपायरी डेट": item["एक्सपायरी"],
+                    "दिन बचे": f"{days_left} दिन",
+                    "WhatsApp Action": f"https://wa.me/91{item['मोबाइल']}?text=नमस्ते%20{item['नाम']},%20आपका%20{item['सर्विस']}%20दिनांक%20{item['एक्सपायरी']}%20को%20एक्सपायर%20हो%20रहा%20है।%20रिन्यू%20कराने%20के%20लिए%20आज%20ही%20Noor%20Cyber%20World%20पर%20आएं।"
+                })
+                
+    if alerts:
+        st.warning(f"कुल {len(alerts)} ग्राहकों के रिन्यूअल अगले 15 दिनों में ड्यू हैं!")
+        for alert in alerts:
+            with st.expander(f"🔴 {alert['नाम']} - {alert['सर्विस']} ({alert['दिन बचे']})"):
+                st.write(f"**मोबाइल:** {alert['मोबाइल']}")
+                st.write(f"**एक्सपायरी:** {alert['एक्सपायरी डेट']}")
+                st.markdown(f"[💬 ग्राहक को WhatsApp मैसेज भेजें]({alert['WhatsApp Action']})", unsafe_allow_dict=True)
+    else:
+        st.info("🎉 अगले 15 दिनों में कोई रिन्यूअल ड्यू नहीं है।")
+
+# 4. CASHBOOK REPORT
+elif choice == "💰 Cashbook Report":
+    st.subheader("दैनिक हिसाब-किताब (Cashbook)")
+    df = pd.DataFrame(st.session_state.records)
+    st.dataframe(df, use_container_width=True)
