@@ -30,12 +30,11 @@ if "records" not in st.session_state:
         }
     ]
 
-# Navigation
-menu = ["📊 Dashboard", "➕ New Entry", "🔔 Renewal Alerts (15 Days)", "💰 Cashbook Report"]
-choice = st.sidebar.selectbox("नेविगेशन मेनू", menu)
+# Create Open Tabs instead of Dropdown
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "➕ New Entry", "🔔 Renewal Alerts", "💰 Cashbook & Actions"])
 
-# 1. DASHBOARD
-if choice == "📊 Dashboard":
+# ----------------- TAB 1: DASHBOARD -----------------
+with tab1:
     st.subheader("आज का ओवरव्यू (Daily Overview)")
     df = pd.DataFrame(st.session_state.records)
     
@@ -51,8 +50,8 @@ if choice == "📊 Dashboard":
     st.subheader("📋 हाल ही में की गई एंट्रीज़")
     st.dataframe(df, use_container_width=True)
 
-# 2. NEW ENTRY
-elif choice == "➕ New Entry":
+# ----------------- TAB 2: NEW ENTRY -----------------
+with tab2:
     st.subheader("ग्राहक एवं नई सर्विस एंट्री")
     with st.form("entry_form", clear_on_submit=True):
         col_a, col_b = st.columns(2)
@@ -84,13 +83,13 @@ elif choice == "➕ New Entry":
                 }
                 st.session_state.records.append(new_data)
                 st.success(f"✅ {name} की डेटा एंट्री सेव हो गई!")
+                st.rerun()
             else:
                 st.error("कृपया नाम और मोबाइल नंबर ज़रूर भरें!")
 
-# 3. RENEWAL ALERTS
-elif choice == "🔔 Renewal Alerts (15 Days)":
+# ----------------- TAB 3: RENEWAL ALERTS -----------------
+with tab3:
     st.subheader("⚠️ अगले 15 दिनों में एक्सपायर होने वाले डॉक्यूमेंट्स")
-    
     today = datetime.now().date()
     alerts = []
     
@@ -104,6 +103,72 @@ elif choice == "🔔 Renewal Alerts (15 Days)":
                 alerts.append({
                     "नाम": item["नाम"],
                     "मोबाइल": item["मोबाइल"],
+                    "सर्विस": item["सर्विस"],
+                    "एक्सपायरी": item["एक्सपायरी"],
+                    "दिन बचे": f"{days_left} दिन",
+                    "link": whatsapp_url
+                })
+                
+    if alerts:
+        st.warning(f"कुल {len(alerts)} ग्राहकों के रिन्यूअल अगले 15 दिनों में ड्यू हैं!")
+        for alert in alerts:
+            with st.expander(f"🔴 {alert['नाम']} - {alert['सर्विस']} ({alert['दिन बचे']})"):
+                st.write(f"**मोबाइल:** {alert['मोबाइल']}")
+                st.write(f"**एक्सपायरी:** {alert['एक्सपायरी']}")
+                st.markdown(f"[💬 ग्राहक को WhatsApp मैसेज भेजें]({alert['link']})")
+    else:
+        st.info("🎉 अगले 15 दिनों में कोई रिन्यूअल ड्यू नहीं है।")
+
+# ----------------- TAB 4: CASHBOOK & EDIT/DELETE -----------------
+with tab4:
+    st.subheader("⚙️ मैनेज एंट्रीज़ (Edit / Delete) & Cashbook")
+    
+    if len(st.session_state.records) == 0:
+        st.info("अभी कोई डेटा उपलब्ध नहीं है।")
+    else:
+        # Edit / Delete Section
+        st.markdown("### 📝 एंट्री में सुधार (Edit) या डिलीट (Delete) करें")
+        
+        # Select record index to modify
+        record_names = [f"{i+1}. {r['नाम']} - {r['सर्विस']} (₹{r['अमाउंट']})" for i, r in enumerate(st.session_state.records)]
+        selected_idx = st.selectbox("जिस एंट्री को एडिट/डिलीट करना है उसे चुनें:", range(len(record_names)), format_func=lambda x: record_names[x])
+        
+        col_ed1, col_ed2 = st.columns(2)
+        
+        # Delete Button Action
+        with col_ed1:
+            if st.button("🗑️ चुनी हुई एंट्री डिलीट करें", type="primary"):
+                removed = st.session_state.records.pop(selected_idx)
+                st.success(f"🗑️ {removed['नाम']} की एंट्री डिलीट कर दी गई!")
+                st.rerun()
+
+        # Edit Form Action
+        with col_ed2:
+            st.markdown("---")
+            st.markdown("#### ✏️ एंट्री में बदलाव करें:")
+            curr = st.session_state.records[selected_idx]
+            
+            with st.form("edit_form"):
+                e_name = st.text_input("नाम", value=curr["नाम"])
+                e_mobile = st.text_input("मोबाइल", value=curr["मोबाइल"])
+                e_service = st.selectbox("सर्विस", ["PAN Card", "Vehicle Insurance", "DL/RC", "Food License", "Passport", "Income Certificate", "Aadhaar Work", "Other"], index=["PAN Card", "Vehicle Insurance", "DL/RC", "Food License", "Passport", "Income Certificate", "Aadhaar Work", "Other"].index(curr["सर्विस"]) if curr["सर्विस"] in ["PAN Card", "Vehicle Insurance", "DL/RC", "Food License", "Passport", "Income Certificate", "Aadhaar Work", "Other"] else 7)
+                e_amount = st.number_input("अमाउंट (₹)", value=int(curr["अमाउंट"]))
+                e_pay = st.radio("पेमेंट", ["Cash", "Online"], index=0 if curr["पेमेंट"] == "Cash" else 1)
+                
+                update_btn = st.form_submit_button("🔄 अपडेट सेव करें")
+                
+                if update_btn:
+                    st.session_state.records[selected_idx]["नाम"] = e_name
+                    st.session_state.records[selected_idx]["मोबाइल"] = e_mobile
+                    st.session_state.records[selected_idx]["सर्विस"] = e_service
+                    st.session_state.records[selected_idx]["अमाउंट"] = e_amount
+                    st.session_state.records[selected_idx]["पेमेंट"] = e_pay
+                    st.success("✅ बदलाव सुरक्षित हो गए!")
+                    st.rerun()
+
+        st.markdown("---")
+        st.subheader("📊 पूरी डेटा लिस्ट")
+        st.dataframe(pd.DataFrame(st.session_state.records), use_container_width=True)
                     "सर्विस": item["सर्विस"],
                     "एक्सपायरी": item["एक्सपायरी"],
                     "दिन बचे": f"{days_left} दिन",
