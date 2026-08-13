@@ -2,20 +2,35 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 
-st.set_page_config(page_title="Noor Cyber World", page_icon="🖥️", layout="wide")
+# Page Config
+st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
 
-# Custom Title Header
+# App Header
 st.title("🖥️ NOOR CYBER WORLD")
 st.caption("Center Management & Automatic Renewal Reminder System")
 
-# Initialize Session State Data (Temporary Storage for Testing)
+# Session State for Data Storage
 if "records" not in st.session_state:
     st.session_state.records = [
-        {"नाम": "रहीम शेख", "मोबाइल": "9800000000", "सर्विस": "Vehicle Insurance", "अमाउंट": 1500, "पेमेंट": "Online", "एक्सपायरी": (datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d")},
-        {"नाम": "अमित शर्मा", "मोबाइल": "9700000000", "सर्विस": "Food License", "अमाउंट": 500, "पेमेंट": "Cash", "एक्सपायरी": (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")}
+        {
+            "नाम": "रहीम शेख",
+            "मोबाइल": "9800000000",
+            "सर्विस": "Vehicle Insurance",
+            "अमाउंट": 1500,
+            "पेमेंट": "Online",
+            "एक्सपायरी": (datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d")
+        },
+        {
+            "नाम": "अमित शर्मा",
+            "मोबाइल": "9700000000",
+            "सर्विस": "Food License",
+            "अमाउंट": 500,
+            "पेमेंट": "Cash",
+            "एक्सपायरी": (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")
+        }
     ]
 
-# Sidebar Navigation Menu
+# Navigation
 menu = ["📊 Dashboard", "➕ New Entry", "🔔 Renewal Alerts (15 Days)", "💰 Cashbook Report"]
 choice = st.sidebar.selectbox("नेविगेशन मेनू", menu)
 
@@ -24,8 +39,8 @@ if choice == "📊 Dashboard":
     st.subheader("आज का ओवरव्यू (Daily Overview)")
     df = pd.DataFrame(st.session_state.records)
     
-    total_cash = df[df["पेमेंट"] == "Cash"]["अमाउंट"].sum() if not df.empty else 0
-    total_online = df[df["पेमेंट"] == "Online"]["अमाउंट"].sum() if not df.empty else 0
+    total_cash = int(df[df["पेमेंट"] == "Cash"]["अमाउंट"].sum()) if not df.empty else 0
+    total_online = int(df[df["पेमेंट"] == "Online"]["अमाउंट"].sum()) if not df.empty else 0
     
     col1, col2, col3 = st.columns(3)
     col1.metric("कुल कलेक्शन (Total)", f"₹ {total_cash + total_online}")
@@ -36,7 +51,7 @@ if choice == "📊 Dashboard":
     st.subheader("📋 हाल ही में की गई एंट्रीज़")
     st.dataframe(df, use_container_width=True)
 
-# 2. NEW ENTRY FORM
+# 2. NEW ENTRY
 elif choice == "➕ New Entry":
     st.subheader("ग्राहक एवं नई सर्विस एंट्री")
     with st.form("entry_form", clear_on_submit=True):
@@ -68,7 +83,7 @@ elif choice == "➕ New Entry":
                     "एक्सपायरी": exp_str
                 }
                 st.session_state.records.append(new_data)
-                st.success(f"✅ {name} की डेटा एंट्री 'Noor Cyber World' सिस्टम में सेव हो गई!")
+                st.success(f"✅ {name} की डेटा एंट्री सेव हो गई!")
             else:
                 st.error("कृपया नाम और मोबाइल नंबर ज़रूर भरें!")
 
@@ -84,13 +99,15 @@ elif choice == "🔔 Renewal Alerts (15 Days)":
             exp_d = datetime.strptime(item["एक्सपायरी"], "%Y-%m-%d").date()
             days_left = (exp_d - today).days
             if 0 <= days_left <= 15:
+                msg = f"नमस्ते {item['नाम']}, आपका {item['सर्विस']} दिनांक {item['एक्सपायरी']} को एक्सपायर हो रहा है। रिन्यू कराने के लिए आज ही NOOR CYBER WORLD पर आएं।"
+                whatsapp_url = f"https://wa.me/91{item['मोबाइल']}?text={msg.replace(' ', '%20')}"
                 alerts.append({
                     "नाम": item["नाम"],
                     "मोबाइल": item["मोबाइल"],
                     "सर्विस": item["सर्विस"],
-                    "एक्सपायरी डेट": item["एक्सपायरी"],
+                    "एक्सपायरी": item["एक्सपायरी"],
                     "दिन बचे": f"{days_left} दिन",
-                    "WhatsApp Action": f"https://wa.me/91{item['मोबाइल']}?text=नमस्ते%20{item['नाम']},%20आपका%20{item['सर्विस']}%20दिनांक%20{item['एक्सपायरी']}%20को%20एक्सपायर%20हो%20रहा%20है।%20रिन्यू%20कराने%20के%20लिए%20आज%20ही%20Noor%20Cyber%20World%20पर%20आएं।"
+                    "link": whatsapp_url
                 })
                 
     if alerts:
@@ -98,8 +115,8 @@ elif choice == "🔔 Renewal Alerts (15 Days)":
         for alert in alerts:
             with st.expander(f"🔴 {alert['नाम']} - {alert['सर्विस']} ({alert['दिन बचे']})"):
                 st.write(f"**मोबाइल:** {alert['मोबाइल']}")
-                st.write(f"**एक्सपायरी:** {alert['एक्सपायरी डेट']}")
-                st.markdown(f"[💬 ग्राहक को WhatsApp मैसेज भेजें]({alert['WhatsApp Action']})", unsafe_allow_dict=True)
+                st.write(f"**एक्सपायरी:** {alert['एक्सपायरी']}")
+                st.markdown(f"[💬 ग्राहक को WhatsApp मैसेज भेजें]({alert['link']})")
     else:
         st.info("🎉 अगले 15 दिनों में कोई रिन्यूअल ड्यू नहीं है।")
 
