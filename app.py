@@ -9,11 +9,47 @@ st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="w
 st.title("🖥️ NOOR CYBER WORLD")
 st.caption("Center Management & Automatic Renewal Reminder System")
 
+# Session State for Dynamic Services List (Auto-Add Feature)
+if "services_list" not in st.session_state:
+    st.session_state.services_list = [
+        "Aadhaar Card Download / Update",
+        "PAN Card New / Correction",
+        "Voter ID Card Apply / Correction",
+        "Ration Card Services",
+        "Ayushman Bharat Card",
+        "E-Shram Card",
+        "Income Certificate (आय प्रमाण पत्र)",
+        "Caste Certificate (जाति प्रमाण पत्र)",
+        "Domicile Certificate (निवास प्रमाण पत्र)",
+        "Non-Creamy Layer Certificate",
+        "Gazette Notification / Name Change",
+        "Passport Application",
+        "Driving License (LL/DL) & RC Services",
+        "PM Kisan Samman Nidhi / KYC",
+        "PF / EPF Withdrawal & Claim",
+        "Government Job Online Forms",
+        "Admission & Scholarship Forms",
+        "Railway / Bus / Air Ticket Booking",
+        "Electricity / Gas / Water Bill Payment",
+        "Money Transfer (DMT) / AEPS Cash Withdrawal",
+        "Mobile / DTH Recharge",
+        "Xerox / Color Printout / Lamination / Scanning",
+        "Resume / Bio-Data Making",
+        "Udyam Aadhaar / MSME Registration",
+        "Shop Act License / FSSAI Food License",
+        "GST Registration & Return Filing",
+        "Income Tax Return (ITR) Filing",
+        "Police Verification Application",
+        "Digital Signature (DSC)",
+        "PVC Card Printing",
+        "Other (अन्य)"
+    ]
+
 # Session State for Data Storage
 if "records" not in st.session_state:
     st.session_state.records = [
-        {"नाम": "रहीम शेख", "मोबाइल": "9800000000", "सर्विस": "Vehicle Insurance", "अमाउंट": 1500, "पेमेंट": "Online", "एक्सपायरी": (datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d")},
-        {"नाम": "अमित शर्मा", "मोबाइल": "9700000000", "सर्विस": "Food License", "अमाउंट": 500, "पेमेंट": "Cash", "एक्सपायरी": (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")}
+        {"नाम": "रहीम शेख", "मोबाइल": "9800000000", "सर्विस": "Driving License (LL/DL) & RC Services", "अमाउंट": 1500, "पेमेंट": "Online", "एक्सपायरी": (datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d")},
+        {"नाम": "अमित शर्मा", "मोबाइल": "9700000000", "सर्विस": "Shop Act License / FSSAI Food License", "अमाउंट": 500, "पेमेंट": "Cash", "एक्सपायरी": (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")}
     ]
 
 # Tabs
@@ -37,9 +73,15 @@ with tab2:
     with st.form("entry_form", clear_on_submit=True):
         col_a, col_b = st.columns(2)
         with col_a:
-            name = st.text_input("नाम*")
-            mobile = st.text_input("मोबाइल*")
-            service = st.selectbox("सर्विस", ["PAN Card", "Vehicle Insurance", "DL/RC", "Food License", "Income Certificate", "Aadhaar Work", "Other"])
+            name = st.text_input("ग्राहक का नाम*")
+            mobile = st.text_input("मोबाइल नंबर*")
+            selected_service = st.selectbox("सर्विस चुनें या नाम टाइप करके खोजें (Search Service)*", st.session_state.services_list)
+            
+            # Show Textbox if 'Other (अन्य)' is selected
+            custom_service_name = ""
+            if selected_service == "Other (अन्य)":
+                custom_service_name = st.text_input("सर्विस का नाम दर्ज करें (यह लिस्ट में Auto Add हो जाएगा)*")
+
         with col_b:
             amount = st.number_input("अमाउंट (₹)", min_value=0, step=10)
             pay_mode = st.radio("पेमेंट मोड", ["Cash", "Online"])
@@ -48,15 +90,27 @@ with tab2:
             
         if st.form_submit_button("💾 डेटा सेव करें"):
             if name and mobile:
+                # Final service selection logic
+                final_service = selected_service
+                if selected_service == "Other (अन्य)":
+                    if custom_service_name.strip():
+                        final_service = custom_service_name.strip()
+                        # Auto Add to Master Services List before 'Other (अन्य)'
+                        if final_service not in st.session_state.services_list:
+                            st.session_state.services_list.insert(-1, final_service)
+                    else:
+                        st.error("कृपया अन्य सर्विस का नाम लिखें!")
+                        st.stop()
+                
                 st.session_state.records.append({
                     "नाम": name, 
                     "मोबाइल": mobile, 
-                    "सर्विस": service, 
+                    "सर्विस": final_service, 
                     "अमाउंट": amount, 
                     "पेमेंट": pay_mode, 
                     "एक्सपायरी": expiry_date.strftime("%Y-%m-%d") if expiry_date else "N/A"
                 })
-                st.success("✅ नई एंट्री सफलता से सेव हो गई!")
+                st.success(f"✅ नई एंट्री ({final_service}) सेव हो गई!")
                 st.rerun()
             else:
                 st.error("कृपया नाम और मोबाइल नंबर भरें!")
@@ -85,15 +139,12 @@ with tab4:
     if not st.session_state.records:
         st.info("अभी कोई डेटा उपलब्ध नहीं है।")
     else:
-        # Select Index
         options = [f"{i+1}. {r['नाम']} - {r['सर्विस']} (₹{r['अमाउंट']})" for i, r in enumerate(st.session_state.records)]
         idx = st.selectbox("जिस एंट्री में बदलाव करना है, उसे चुनें:", range(len(options)), format_func=lambda x: options[x])
         
         curr_rec = st.session_state.records[idx]
-        
         st.markdown("---")
         
-        # Delete Button
         if st.button("🗑️ चुनी हुई एंट्री डिलीट करें", type="primary"):
             st.session_state.records.pop(idx)
             st.success("🗑️ एंट्री डिलीट कर दी गई!")
@@ -108,9 +159,9 @@ with tab4:
                 e_name = st.text_input("ग्राहक का नाम", value=curr_rec["नाम"])
                 e_mobile = st.text_input("मोबाइल नंबर", value=curr_rec["मोबाइल"])
                 
-                services_list = ["PAN Card", "Vehicle Insurance", "DL/RC", "Food License", "Income Certificate", "Aadhaar Work", "Other"]
-                s_idx = services_list.index(curr_rec["सर्विस"]) if curr_rec["सर्विस"] in services_list else 6
-                e_service = st.selectbox("सर्विस", services_list, index=s_idx)
+                # Check service index
+                s_idx = st.session_state.services_list.index(curr_rec["सर्विस"]) if curr_rec["सर्विस"] in st.session_state.services_list else len(st.session_state.services_list)-1
+                e_service = st.selectbox("सर्विस", st.session_state.services_list, index=s_idx)
                 
             with col_e2:
                 e_amount = st.number_input("अमाउंट (₹)", value=int(curr_rec["अमाउंट"]), step=10)
