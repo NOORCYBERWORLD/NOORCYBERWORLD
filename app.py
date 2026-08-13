@@ -169,24 +169,3 @@ with tab4:
         st.markdown("---")
         st.subheader("📊 पूरी डेटा लिस्ट")
         st.dataframe(pd.DataFrame(st.session_state.records), use_container_width=True)
-                    "सर्विस": item["सर्विस"],
-                    "एक्सपायरी": item["एक्सपायरी"],
-                    "दिन बचे": f"{days_left} दिन",
-                    "link": whatsapp_url
-                })
-                
-    if alerts:
-        st.warning(f"कुल {len(alerts)} ग्राहकों के रिन्यूअल अगले 15 दिनों में ड्यू हैं!")
-        for alert in alerts:
-            with st.expander(f"🔴 {alert['नाम']} - {alert['सर्विस']} ({alert['दिन बचे']})"):
-                st.write(f"**मोबाइल:** {alert['मोबाइल']}")
-                st.write(f"**एक्सपायरी:** {alert['एक्सपायरी']}")
-                st.markdown(f"[💬 ग्राहक को WhatsApp मैसेज भेजें]({alert['link']})")
-    else:
-        st.info("🎉 अगले 15 दिनों में कोई रिन्यूअल ड्यू नहीं है।")
-
-# 4. CASHBOOK REPORT
-elif choice == "💰 Cashbook Report":
-    st.subheader("दैनिक हिसाब-किताब (Cashbook)")
-    df = pd.DataFrame(st.session_state.records)
-    st.dataframe(df, use_container_width=True)
