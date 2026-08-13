@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 # Page Config
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
@@ -128,43 +129,65 @@ with tab1:
 # TAB 2: NEW ENTRY
 with tab2:
     st.subheader("New Service Entry")
-    with st.form("entry_form", clear_on_submit=True):
-        col_a, col_b = st.columns(2)
-        with col_a:
-            name = st.text_input("Customer Name*")
-            mobile = st.text_input("Mobile Number*")
-            selected_service = st.selectbox("Search / Select Service*", st.session_state.services_list)
-            
-            custom_service_name = ""
-            if selected_service == "Other":
-                custom_service_name = st.text_input("Type New Service Name (Will Auto-Add to List)*")
+    
+    col_a, col_b = st.columns(2)
+    with col_a:
+        name = st.text_input("Customer Name*", key="new_name")
+        mobile = st.text_input("Mobile Number*", key="new_mobile")
+        selected_service = st.selectbox("Search / Select Service*", st.session_state.services_list, key="new_service")
+        
+        custom_service_name = ""
+        if selected_service == "Other":
+            custom_service_name = st.text_input("Type New Service Name (Will Auto-Add to List)*", key="custom_srv")
 
-        with col_b:
-            amount = st.number_input("Amount (₹)", min_value=0, step=10)
-            pay_mode = st.radio("Payment Mode", ["Cash", "Online"])
-            has_expiry = st.checkbox("Does it require renewal?")
-            expiry_date = st.date_input("Expiry Date") if has_expiry else None
+    with col_b:
+        amount = st.number_input("Amount (₹)", min_value=0, step=10, key="new_amount")
+        pay_mode = st.radio("Payment Mode", ["Cash", "Online"], key="new_pay")
+        
+        st.markdown("---")
+        has_expiry = st.checkbox("Does it require renewal / validity?", key="has_exp")
+        
+        calculated_expiry = None
+        if has_expiry:
+            st.write("⏱️ **Set Validity / Expiry Duration:**")
+            col_dur1, col_dur2 = st.columns(2)
+            with col_dur1:
+                duration_unit = st.selectbox("Validity Unit", ["Days", "Months", "Years"], index=1)
+            with col_dur2:
+                duration_val = st.number_input(f"Number of {duration_unit}", min_value=1, value=1 if duration_unit != "Days" else 7, step=1)
             
-        if st.form_submit_button("💾 Save Entry"):
-            if name and mobile:
-                final_service = selected_service
-                if selected_service == "Other":
-                    if custom_service_name.strip():
-                        final_service = custom_service_name.strip()
-                        if final_service not in st.session_state.services_list:
-                            st.session_state.services_list.insert(-1, final_service)
-                    else:
-                        st.error("Please enter the custom service name!")
-                        st.stop()
+            # Auto calculate expiry date
+            today = datetime.now().date()
+            if duration_unit == "Days":
+                calculated_expiry = today + timedelta(days=int(duration_val))
+            elif duration_unit == "Months":
+                calculated_expiry = today + relativedelta(months=int(duration_val))
+            elif duration_unit == "Years":
+                calculated_expiry = today + relativedelta(years=int(duration_val))
                 
-                exp_str = expiry_date.strftime("%Y-%m-%d") if expiry_date else "N/A"
-                
-                # Save into SQLite Database
-                add_record(name, mobile, final_service, amount, pay_mode, exp_str)
-                st.success(f"✅ Entry saved successfully: {final_service}")
-                st.rerun()
-            else:
-                st.error("Please enter Name and Mobile Number!")
+            st.info(f"📅 **Calculated Expiry Date:** {calculated_expiry.strftime('%d-%m-%Y')} ({duration_val} {duration_unit} from today)")
+
+    st.markdown("---")
+    if st.button("💾 Save Entry", type="primary"):
+        if name and mobile:
+            final_service = selected_service
+            if selected_service == "Other":
+                if custom_service_name.strip():
+                    final_service = custom_service_name.strip()
+                    if final_service not in st.session_state.services_list:
+                        st.session_state.services_list.insert(-1, final_service)
+                else:
+                    st.error("Please enter the custom service name!")
+                    st.stop()
+            
+            exp_str = calculated_expiry.strftime("%Y-%m-%d") if calculated_expiry else "N/A"
+            
+            # Save into SQLite Database
+            add_record(name, mobile, final_service, amount, pay_mode, exp_str)
+            st.success(f"✅ Entry saved successfully: {final_service}")
+            st.rerun()
+        else:
+            st.error("Please enter Name and Mobile Number!")
 
 # TAB 3: ALERTS
 with tab3:
@@ -176,15 +199,16 @@ with tab3:
     if not df.empty:
         for idx, row in df.iterrows():
             exp_val = row["Expiry"]
-            if exp_val != "N/A" and exp_val != "":
+            if exp_val != "N/A" and exp_val != "" and exp_val is not None:
                 try:
                     exp_d = datetime.strptime(str(exp_val), "%Y-%m-%d").date()
                     days_left = (exp_d - today).days
                     if 0 <= days_left <= 15:
                         alerts_found = True
-                        msg = f"Hello {row['Name']}, your {row['Service']} is expiring on {row['Expiry']}. Please visit NOOR CYBER WORLD for renewal."
+                        formatted_exp = exp_d.strftime('%d-%m-%Y')
+                        msg = f"Hello {row['Name']}, your {row['Service']} is expiring on {formatted_exp}. Please visit NOOR CYBER WORLD for renewal."
                         wa_link = f"https://wa.me/91{row['Mobile']}?text={msg.replace(' ', '%20')}"
-                        st.warning(f"🔴 **{row['Name']}** - {row['Service']} (Expires: {row['Expiry']} | {days_left} Days Left)")
+                        st.warning(f"🔴 **{row['Name']}** - {row['Service']} (Expires: {formatted_exp} | {days_left} Days Left)")
                         st.markdown(f"[💬 Send WhatsApp Message]({wa_link})")
                 except Exception:
                     pass
