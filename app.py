@@ -36,10 +36,12 @@ st.markdown("""
 
 st.markdown("---")
 
-@st.cache_data(ttl=2)
+# Direct fetch function without heavy caching to ensure live display
 def get_records():
     try:
-        res = requests.get(WEB_APP_URL, timeout=12)
+        # Cache busting timestamp
+        fetch_url = f"{WEB_APP_URL}?t={datetime.now().timestamp()}"
+        res = requests.get(fetch_url, timeout=10)
         if res.status_code == 200:
             data = res.json()
             if isinstance(data, list):
@@ -146,7 +148,6 @@ with tab1:
     st.markdown("---")
     st.subheader(f"➕ Add Entry for {st.session_state.selected_view_date.strftime('%d-%m-%Y')}")
     
-    # Direct Form Inputs without Nesting Errors
     col_a, col_b = st.columns(2)
     with col_a:
         name = st.text_input("Customer Name*", key="cust_name_input")
@@ -187,15 +188,15 @@ with tab1:
 
             date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
             
-            with st.spinner("Saving entry to Google Sheet..."):
+            with st.spinner("Saving entry to Google Sheet & Updating App..."):
                 success = add_record(date_str, name, mobile, final_service, amount, pay_mode, exp_str)
             
             if success:
-                st.cache_data.clear()
                 st.success(f"✅ Entry for '{name}' saved successfully!")
-                st.balloons()
+                # Auto Refresh Page immediately to load new data on screen
+                st.rerun()
             else:
-                st.error("❌ Google Sheet server error. Please check Apps Script connection.")
+                st.error("❌ Google Sheet server error. Please try again.")
 
 with tab2:
     st.subheader("⚠️ Renewal Alerts (Next 15 Days)")
