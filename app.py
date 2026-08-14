@@ -342,15 +342,14 @@ def generate_pdf(df):
 # Fetch Data Live
 df_all = fetch_sheet_records()
 
-# Unique Customer Names & Mobile mapping
-existing_names = sorted(list(set(df_all["name"].dropna().str.strip()))) if not df_all.empty else []
-name_to_mobile_map = {}
+# Mobile to Name Map for Quick Auto-fill
+mobile_to_name_map = {}
 if not df_all.empty:
     for _, r in df_all.iterrows():
-        nm = str(r["name"]).strip()
         mb = str(r["mobile"]).strip()
-        if nm and mb:
-            name_to_mobile_map[nm] = mb
+        nm = str(r["name"]).strip()
+        if mb and nm:
+            mobile_to_name_map[mb] = nm
 
 # Top Header Stats Display
 now_ist = datetime.now(IST)
@@ -501,27 +500,29 @@ with tab1:
     left, right = st.columns(2)
 
     with left:
-        if is_editing:
-            name_input = st.text_input("Customer Name*", value=edit_data.get("name", ""), key="input_name_edit")
-        else:
-            name_input = st.selectbox(
-                "Customer Name*",
-                options=existing_names,
-                index=None,
-                placeholder="Type name (e.g. Nawaj) or select existing...",
-                accept_new_options=True,
-                key="input_name_select"
-            )
-            if name_input is None:
-                name_input = ""
+        # 1. Mobile Number Pehle Mangenge
+        mobile_input = st.text_input(
+            "Mobile Number*", 
+            value=edit_data.get("mobile", ""), 
+            key="input_mobile_num"
+        )
+        clean_mobile = str(mobile_input).strip()
 
-        auto_mobile = ""
-        if name_input and name_input.strip() in name_to_mobile_map and not is_editing:
-            auto_mobile = name_to_mobile_map[name_input.strip()]
-            
-        default_mobile = edit_data.get("mobile", "") if is_editing else auto_mobile
-        mobile_input = st.text_input("Mobile Number*", value=default_mobile, key=f"input_mobile_{name_input}")
+        # Auto Detect Name from Mobile
+        auto_name = ""
+        if clean_mobile in mobile_to_name_map and not is_editing:
+            auto_name = mobile_to_name_map[clean_mobile]
+            st.success(f"🟢 Existing Customer Detected: **{auto_name}**")
+
+        default_name = edit_data.get("name", "") if is_editing else auto_name
         
+        # 2. Customer Name (Auto-filled or Manual Type)
+        name_input = st.text_input(
+            "Customer Name*", 
+            value=default_name, 
+            key=f"input_name_{clean_mobile}"
+        )
+
         curr_serv = edit_data.get("service", SERVICES[0])
         default_index = SERVICES.index(curr_serv) if curr_serv in SERVICES else SERVICES.index("Other")
         
@@ -595,7 +596,7 @@ with tab1:
                     st.session_state.editing_row = None
                     fetch_sheet_records.clear()
                     
-                    ty_msg = f"Dear {name_input.strip()}, Thank you for choosing NOOR CYBER WORLD for {final_service}! Total Amount: Rs.{amount}. We are happy to serve you."
+                    ty_msg = f"Dear {str(name_input).strip()}, Thank you for choosing NOOR CYBER WORLD for {final_service}! Total Amount: Rs.{amount}. We are happy to serve you."
                     st.session_state.last_saved_wa = f"https://wa.me/91{mobile_input.strip()}?text={quote(ty_msg)}"
                     st.session_state.success_message = "✅ Entry Saved Successfully!"
                     st.rerun()
@@ -830,3 +831,4 @@ with tab5:
 
 if "success_message" in st.session_state:
     st.toast(st.session_state.pop("success_message"), icon="✅")
+
