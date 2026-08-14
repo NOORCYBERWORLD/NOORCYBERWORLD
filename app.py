@@ -17,27 +17,14 @@ st.markdown("""
         color: #ffffff;
     }
     
-    /* Header Card Style */
-    .header-box {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border-radius: 16px;
-        padding: 15px 25px;
-        margin-bottom: 25px;
-        border: 1px solid rgba(230, 30, 30, 0.3);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        gap: 20px;
-    }
-    
+    /* Header Title Style */
     .header-title {
         margin: 0;
         color: #ff2a2a;
-        font-size: 30px;
+        font-size: 32px;
         font-weight: 800;
         letter-spacing: 1.5px;
-        text-shadow: 0 0 10px rgba(255, 42, 42, 0.3);
+        text-shadow: 0 0 12px rgba(255, 42, 42, 0.4);
     }
     
     .header-subtitle {
@@ -88,22 +75,34 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# App Header with Local Logo Support
-col_logo, col_title = st.columns([1, 5])
+# Smart Multi-Format Logo Loader Function
+def load_logo():
+    possible_names = ["logo.png", "logo.jpg", "logo.jpeg", "LOGO.PNG", "LOGO.JPG", "LOGO.JPEG"]
+    for file in possible_names:
+        if os.path.exists(file):
+            return file
+    return None
+
+logo_file = load_logo()
+
+# App Header Layout
+col_logo, col_title = st.columns([1, 4])
 
 with col_logo:
-    if os.path.exists("logo.png"):
-        st.image("logo.png", width=120)
+    if logo_file:
+        st.image(logo_file, width=130)
     else:
-        st.write("🖥️")
+        st.info("💡 GitHub पर 'logo.png' अपलोड करें")
 
 with col_title:
     st.markdown("""
-        <div>
+        <div style='padding-top: 10px;'>
             <h1 class="header-title">NOOR CYBER WORLD</h1>
             <p class="header-subtitle">Center Management & Renewal Reminder System</p>
         </div>
     """, unsafe_allow_html=True)
+
+st.markdown("---")
 
 # Initialize SQLite Database
 def init_db():
