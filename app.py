@@ -1477,11 +1477,7 @@ if "success_message" in st.session_state:
 
 
 df_all = clean_df(
-    # ============================================================
-# MERGE SHEET + LOCAL SAFELY
-# ============================================================
-
-# ============================================================
+  # ============================================================
 # MERGE SHEET + LOCAL SAFELY
 # ============================================================
 
@@ -1489,26 +1485,28 @@ df_all = clean_df(
     st.session_state.records_cache
 )
 
-if not df_all.empty:
+# Remove duplicate local records safely
+if not df_all.empty and "_local_id" in df_all.columns:
 
-    # Same local ID duplicate असल्यास एकच record
-    if "_local_id" in df_all.columns:
+    local_ids = (
+        df_all["_local_id"]
+        .fillna("")
+        .astype(str)
+    )
 
-        local_ids = (
-            df_all["_local_id"]
-            .fillna("")
-            .astype(str)
-        )
+    keep_mask = (
+        (local_ids == "")
+        |
+        (~local_ids.duplicated(keep="first"))
+    )
 
-        df_all = (
-            df_all[
-                (local_ids == "")
-                |
-                (~local_ids.duplicated())
-            ]
-            .reset_index(drop=True)
-        )
+    df_all = (
+        df_all.loc[keep_mask]
+        .reset_index(drop=True)
+    )
 
+
+# Separate local and Google Sheet records
 
 local_df = df_all[
     df_all["_source"] == "local"
