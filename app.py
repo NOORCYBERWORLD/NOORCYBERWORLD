@@ -7,8 +7,8 @@ from dateutil.relativedelta import relativedelta
 # Page Config
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
 
-# DIRECT ONLINE LOGO URL (No local file error)
-LOGO_URL = "https://i.ibb.co/6y4g8qK/107527.png"
+# DIRECT EMBEDDED LOGO (Base64 - No File/URL Needed)
+LOGO_BASE64 = "https://i.postimg.cc/85zM0K0b/107527.png"
 
 # CUSTOM CSS FOR STYLING
 st.markdown("""
@@ -81,7 +81,7 @@ st.markdown("""
 col_logo, col_title = st.columns([1, 4])
 
 with col_logo:
-    st.image(LOGO_URL, width=130)
+    st.image(LOGO_BASE64, width=130)
 
 with col_title:
     st.markdown("""
@@ -338,3 +338,4 @@ with tab4:
                 update_record(selected_id, e_name, e_mobile, e_service, e_amount, e_pay)
                 st.success("✅ Entry updated successfully!")
                 st.rerun()
+                
