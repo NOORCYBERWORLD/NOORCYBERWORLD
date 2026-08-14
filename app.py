@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 # Page Config
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
 
-# 👇 यहाँ अपनी Base64 कोड स्ट्रिंग पेस्ट करें
+# 👇 यहाँ अपनी Base64 कोड स्ट्रिंग रहने दें
 LOGO_BASE64 = "PASTE_YOUR_BASE64_STRING_HERE"
 
 # CUSTOM CSS FOR STYLING
@@ -46,6 +46,15 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     }
 
+    /* Date Bar Container */
+    .date-nav-card {
+        background-color: #1e2824;
+        border-radius: 12px;
+        padding: 12px 20px;
+        border: 1px solid #2d3b35;
+        margin-bottom: 20px;
+    }
+
     /* Tab Styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
@@ -62,11 +71,6 @@ st.markdown("""
         background-color: #ff2a2a !important;
         color: #ffffff !important;
         font-weight: bold;
-    }
-
-    /* Form & Input Styling */
-    .stTextInput input, .stSelectbox select, .stNumberInput input {
-        border-radius: 8px !important;
     }
 
     /* Primary Button */
@@ -113,7 +117,7 @@ def init_db():
         )
     ''')
     
-    # Check if created_at column exists in old DB
+    # Auto-migration for old databases
     c.execute("PRAGMA table_info(records)")
     columns = [col[1] for col in c.fetchall()]
     if "created_at" not in columns:
@@ -140,7 +144,6 @@ def get_records():
     df = pd.read_sql_query("SELECT id, created_at as Date, name as Name, mobile as Mobile, service as Service, amount as Amount, payment as Payment, expiry as Expiry FROM records", conn)
     conn.close()
     
-    # Fill empty dates with today's date if any
     today_str = datetime.now().strftime("%Y-%m-%d")
     df["Date"] = df["Date"].replace(["", None], today_str)
     return df
@@ -166,7 +169,10 @@ def update_record(record_id, created_at, name, mobile, service, amount, payment,
 # Run DB Setup
 init_db()
 
-# Session State for Dynamic Services List
+# Session State Initialization
+if "selected_view_date" not in st.session_state:
+    st.session_state.selected_view_date = datetime.now().date()
+
 if "services_list" not in st.session_state:
     st.session_state.services_list = [
         "Aadhaar Card Download / Update",
@@ -202,66 +208,145 @@ if "services_list" not in st.session_state:
         "Other"
     ]
 
-# Tabs
-tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "➕ New Entry", "🔔 Renewal Alerts", "📂 History & Edit/Delete"])
+# --- 🗓️ CUSTOM DATE NAVIGATION BAR ---
+df_all = get_records()
+curr_date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
 
-# TAB 1: DASHBOARD (Today's Data)
+if not df_all.empty and "Date" in df_all.columns:
+    day_df = df_all[df_all["Date"] == curr_date_str]
+    day_total = int(day_df["Amount"].sum()) if not day_df.empty else 0
+else:
+    day_df = pd.DataFrame()
+    day_total = 0
+
+col_prev, col_date, col_next = st.columns([1, 4, 1])
+
+with col_prev:
+    st.write("")
+    if st.button("❮ Previous", use_container_width=True):
+        st.session_state.selected_view_date -= timedelta(days=1)
+        st.rerun()
+
+with col_date:
+    selected_from_cal = st.date_input(
+        f"📅 Date: {st.session_state.selected_view_date.strftime('%B %d, %Y (%A)')}  |  Balance: ₹ {day_total:,}",
+        value=st.session_state.selected_view_date,
+        key="date_picker_main"
+    )
+    if selected_from_cal != st.session_state.selected_view_date:
+        st.session_state.selected_view_date = selected_from_cal
+        st.rerun()
+
+with col_next:
+    st.write("")
+    if st.button("Next ❯", use_container_width=True):
+        st.session_state.selected_view_date += timedelta(days=1)
+        st.rerun()
+
+st.markdown("---")
+
+# Tabs
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Daily View & Add Entry", "➕ Quick Entry", "🔔 Renewal Alerts", "📂 Full History & Edit/Delete"])
+
+# TAB 1: DAILY VIEW & ENTRY FOR SELECTED DATE
 with tab1:
-    st.subheader("Today's Overview")
-    df = get_records()
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    st.subheader(f"📋 Entries for {st.session_state.selected_view_date.strftime('%d-%m-%Y (%A)')}")
     
-    if not df.empty and "Date" in df.columns:
-        today_df = df[df["Date"] == today_str]
-    else:
-        today_df = pd.DataFrame()
-        
-    if not today_df.empty:
-        total_cash = int(today_df[today_df["Payment"] == "Cash"]["Amount"].sum())
-        total_online = int(today_df[today_df["Payment"] == "Online"]["Amount"].sum())
+    if not day_df.empty:
+        total_cash = int(day_df[day_df["Payment"] == "Cash"]["Amount"].sum())
+        total_online = int(day_df[day_df["Payment"] == "Online"]["Amount"].sum())
     else:
         total_cash = 0
         total_online = 0
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Today Total", f"₹ {total_cash + total_online}")
-    col2.metric("Today Cash", f"₹ {total_cash}")
-    col3.metric("Today Online / UPI", f"₹ {total_online}")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Day Total", f"₹ {total_cash + total_online}")
+    c2.metric("Day Cash", f"₹ {total_cash}")
+    c3.metric("Day Online / UPI", f"₹ {total_online}")
     
     st.markdown("---")
-    st.write("📋 **Today's Entries:**")
-    st.dataframe(today_df.drop(columns=["id"], errors="ignore"), use_container_width=True)
+    if not day_df.empty:
+        st.dataframe(day_df.drop(columns=["id"], errors="ignore"), use_container_width=True)
+    else:
+        st.info("ℹ️ No entries recorded for this date yet.")
 
-# TAB 2: NEW ENTRY
+    # Direct Entry Box for this Date
+    st.markdown("---")
+    st.subheader(f"➕ Add Entry for {st.session_state.selected_view_date.strftime('%d-%m-%Y')}")
+    
+    with st.form("tab1_add_entry_form"):
+        col_a, col_b = st.columns(2)
+        with col_a:
+            name = st.text_input("Customer Name*")
+            mobile = st.text_input("Mobile Number*")
+            selected_service = st.selectbox("Search / Select Service*", st.session_state.services_list)
+            custom_srv = st.text_input("Type Custom Service Name (If 'Other' Selected)")
+
+        with col_b:
+            amount = st.number_input("Amount (₹)", min_value=0, step=10)
+            pay_mode = st.radio("Payment Mode", ["Cash", "Online"], horizontal=True)
+            has_expiry = st.checkbox("Requires Renewal / Validity?")
+            dur_unit = st.selectbox("Validity Unit", ["Days", "Months", "Years"], index=1)
+            dur_val = st.number_input("Validity Duration Value", min_value=1, value=1)
+
+        submitted = st.form_submit_button("💾 Save Entry for Selected Date", type="primary")
+        if submitted:
+            if name and mobile:
+                final_service = selected_service
+                if selected_service == "Other":
+                    if custom_srv.strip():
+                        final_service = custom_srv.strip()
+                    else:
+                        st.error("Please specify custom service name!")
+                        st.stop()
+                
+                exp_str = "N/A"
+                if has_expiry:
+                    entry_d = st.session_state.selected_view_date
+                    if dur_unit == "Days":
+                        calc_exp = entry_d + timedelta(days=int(dur_val))
+                    elif dur_unit == "Months":
+                        calc_exp = entry_d + relativedelta(months=int(dur_val))
+                    elif dur_unit == "Years":
+                        calc_exp = entry_d + relativedelta(years=int(dur_val))
+                    exp_str = calc_exp.strftime("%Y-%m-%d")
+
+                date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
+                add_record(date_str, name, mobile, final_service, amount, pay_mode, exp_str)
+                st.success(f"✅ Entry saved for {date_str}!")
+                st.rerun()
+            else:
+                st.error("Please fill Name and Mobile Number!")
+
+# TAB 2: QUICK ENTRY (Custom Date Option)
 with tab2:
-    st.subheader("New Service Entry")
+    st.subheader("➕ New Service Entry")
     
     col_a, col_b = st.columns(2)
     with col_a:
-        entry_date = st.date_input("Entry Date*", datetime.now().date(), key="new_entry_date")
-        name = st.text_input("Customer Name*", key="new_name")
-        mobile = st.text_input("Mobile Number*", key="new_mobile")
-        selected_service = st.selectbox("Search / Select Service*", st.session_state.services_list, key="new_service")
+        entry_date = st.date_input("Entry Date*", st.session_state.selected_view_date, key="tab2_date")
+        name = st.text_input("Customer Name*", key="tab2_name")
+        mobile = st.text_input("Mobile Number*", key="tab2_mobile")
+        selected_service = st.selectbox("Search / Select Service*", st.session_state.services_list, key="tab2_service")
         
         custom_service_name = ""
         if selected_service == "Other":
-            custom_service_name = st.text_input("Type New Service Name*", key="custom_srv")
+            custom_service_name = st.text_input("Type New Service Name*", key="tab2_custom_srv")
 
     with col_b:
-        amount = st.number_input("Amount (₹)", min_value=0, step=10, key="new_amount")
-        pay_mode = st.radio("Payment Mode", ["Cash", "Online"], key="new_pay")
+        amount = st.number_input("Amount (₹)", min_value=0, step=10, key="tab2_amount")
+        pay_mode = st.radio("Payment Mode", ["Cash", "Online"], key="tab2_pay")
         
         st.markdown("---")
-        has_expiry = st.checkbox("Does it require renewal / validity?", key="has_exp")
+        has_expiry = st.checkbox("Does it require renewal / validity?", key="tab2_has_exp")
         
         calculated_expiry = None
         if has_expiry:
-            st.write("⏱️ **Set Validity / Expiry Duration:**")
             col_dur1, col_dur2 = st.columns(2)
             with col_dur1:
-                duration_unit = st.selectbox("Validity Unit", ["Days", "Months", "Years"], index=1)
+                duration_unit = st.selectbox("Validity Unit", ["Days", "Months", "Years"], index=1, key="tab2_unit")
             with col_dur2:
-                duration_val = st.number_input(f"Number of {duration_unit}", min_value=1, value=1 if duration_unit != "Days" else 7, step=1)
+                duration_val = st.number_input(f"Number of {duration_unit}", min_value=1, value=1, step=1, key="tab2_val")
             
             if duration_unit == "Days":
                 calculated_expiry = entry_date + timedelta(days=int(duration_val))
@@ -269,26 +354,23 @@ with tab2:
                 calculated_expiry = entry_date + relativedelta(months=int(duration_val))
             elif duration_unit == "Years":
                 calculated_expiry = entry_date + relativedelta(years=int(duration_val))
-                
-            st.info(f"📅 **Calculated Expiry Date:** {calculated_expiry.strftime('%d-%m-%Y')}")
 
     st.markdown("---")
-    if st.button("💾 Save Entry", type="primary"):
+    if st.button("💾 Save Quick Entry", type="primary", key="tab2_save_btn"):
         if name and mobile:
             final_service = selected_service
             if selected_service == "Other":
                 if custom_service_name.strip():
                     final_service = custom_service_name.strip()
-                    if final_service not in st.session_state.services_list:
-                        st.session_state.services_list.insert(-1, final_service)
                 else:
-                    st.error("Please enter the custom service name!")
+                    st.error("Please enter custom service name!")
                     st.stop()
             
             exp_str = calculated_expiry.strftime("%Y-%m-%d") if calculated_expiry else "N/A"
             date_str = entry_date.strftime("%Y-%m-%d")
             
             add_record(date_str, name, mobile, final_service, amount, pay_mode, exp_str)
+            st.session_state.selected_view_date = entry_date
             st.success(f"✅ Entry saved successfully for Date: {entry_date.strftime('%d-%m-%Y')}")
             st.rerun()
         else:
@@ -299,10 +381,9 @@ with tab3:
     st.subheader("⚠️ Renewal Alerts (Next 15 Days)")
     today = datetime.now().date()
     alerts_found = False
-    df = get_records()
     
-    if not df.empty:
-        for idx, row in df.iterrows():
+    if not df_all.empty:
+        for idx, row in df_all.iterrows():
             exp_val = row["Expiry"]
             if exp_val != "N/A" and exp_val != "" and exp_val is not None:
                 try:
@@ -321,87 +402,49 @@ with tab3:
     if not alerts_found:
         st.info("🎉 No renewals due in the next 15 days.")
 
-# TAB 4: HISTORY & EDIT/DELETE
+# TAB 4: FULL HISTORY & EDIT/DELETE
 with tab4:
-    st.subheader("📂 History & Manage Entries (Search / Edit / Delete)")
-    df = get_records()
-    
-    if df.empty:
+    st.subheader("📂 All Records & Edit / Delete")
+    if df_all.empty:
         st.info("No records available in database.")
     else:
-        col_f1, col_f2 = st.columns([1, 2])
-        with col_f1:
-            filter_type = st.radio("Filter By Date:", ["Single Date", "Date Range", "All Records"])
-        
-        filtered_df = df.copy()
-        
-        with col_f2:
-            if filter_type == "Single Date":
-                selected_date = st.date_input("Select Date", datetime.now().date())
-                sel_date_str = selected_date.strftime("%Y-%m-%d")
-                filtered_df = df[df["Date"] == sel_date_str]
-            elif filter_type == "Date Range":
-                col_r1, col_r2 = st.columns(2)
-                with col_r1:
-                    start_d = st.date_input("From Date", datetime.now().date() - timedelta(days=7))
-                with col_r2:
-                    end_d = st.date_input("To Date", datetime.now().date())
-                
-                filtered_df = df[(df["Date"] >= start_d.strftime("%Y-%m-%d")) & (df["Date"] <= end_d.strftime("%Y-%m-%d"))]
-
+        st.dataframe(df_all.drop(columns=["id"], errors="ignore"), use_container_width=True)
         st.markdown("---")
-        if not filtered_df.empty:
-            f_cash = int(filtered_df[filtered_df["Payment"] == "Cash"]["Amount"].sum())
-            f_online = int(filtered_df[filtered_df["Payment"] == "Online"]["Amount"].sum())
-            
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Selected Period Total", f"₹ {f_cash + f_online}")
-            c2.metric("Selected Period Cash", f"₹ {f_cash}")
-            c3.metric("Selected Period Online", f"₹ {f_online}")
-            
-            st.markdown("### 📋 Filtered Records Table")
-            st.dataframe(filtered_df.drop(columns=["id"], errors="ignore"), use_container_width=True)
-            
-            st.markdown("---")
-            st.markdown("### ✏️ Select Entry to Edit or Delete")
-            
-            options = {f"ID:{row['id']} | Date:{row['Date']} | {row['Name']} - {row['Service']} (₹{row['Amount']})": row['id'] for idx, row in filtered_df.iterrows()}
-            selected_option = st.selectbox("Choose Entry:", list(options.keys()))
-            selected_id = options[selected_option]
-            
-            curr_rec = df[df["id"] == selected_id].iloc[0]
-            
-            col_act1, col_act2 = st.columns([1, 3])
-            with col_act1:
-                if st.button("🗑️ Delete Selected Entry", type="primary"):
-                    delete_record(selected_id)
-                    st.success("🗑️ Entry deleted permanently!")
-                    st.rerun()
-            
-            st.markdown("#### 📝 Edit Record Details:")
-            with st.form("edit_entry_form"):
-                col_e1, col_e2 = st.columns(2)
-                with col_e1:
-                    try:
-                        curr_date_obj = datetime.strptime(str(curr_rec["Date"]), "%Y-%m-%d").date()
-                    except:
-                        curr_date_obj = datetime.now().date()
-                        
-                    e_date = st.date_input("Entry Date", value=curr_date_obj)
-                    e_name = st.text_input("Customer Name", value=curr_rec["Name"])
-                    e_mobile = st.text_input("Mobile Number", value=curr_rec["Mobile"])
+        st.markdown("### ✏️ Select Entry to Edit or Delete")
+        
+        options = {f"ID:{row['id']} | Date:{row['Date']} | {row['Name']} - {row['Service']} (₹{row['Amount']})": row['id'] for idx, row in df_all.iterrows()}
+        selected_option = st.selectbox("Choose Entry:", list(options.keys()))
+        selected_id = options[selected_option]
+        
+        curr_rec = df_all[df_all["id"] == selected_id].iloc[0]
+        
+        if st.button("🗑️ Delete Selected Entry", type="primary"):
+            delete_record(selected_id)
+            st.success("🗑️ Entry deleted permanently!")
+            st.rerun()
+        
+        st.markdown("#### 📝 Edit Record Details:")
+        with st.form("edit_entry_form"):
+            col_e1, col_e2 = st.columns(2)
+            with col_e1:
+                try:
+                    curr_date_obj = datetime.strptime(str(curr_rec["Date"]), "%Y-%m-%d").date()
+                except:
+                    curr_date_obj = datetime.now().date()
                     
-                    s_idx = st.session_state.services_list.index(curr_rec["Service"]) if curr_rec["Service"] in st.session_state.services_list else len(st.session_state.services_list)-1
-                    e_service = st.selectbox("Service", st.session_state.services_list, index=s_idx)
-                    
-                with col_e2:
-                    e_amount = st.number_input("Amount (₹)", value=int(curr_rec["Amount"]), step=10)
-                    e_pay = st.radio("Payment Mode", ["Cash", "Online"], index=0 if curr_rec["Payment"] == "Cash" else 1)
-                    e_expiry = st.text_input("Expiry Date (YYYY-MM-DD or N/A)", value=str(curr_rec["Expiry"]))
-                    
-                if st.form_submit_button("🔄 Update Entry"):
-                    update_record(selected_id, e_date.strftime("%Y-%m-%d"), e_name, e_mobile, e_service, e_amount, e_pay, e_expiry)
-                    st.success("✅ Entry updated successfully!")
-                    st.rerun()
-        else:
-            st.warning("⚠️ No records found for the selected date filter.")
+                e_date = st.date_input("Entry Date", value=curr_date_obj)
+                e_name = st.text_input("Customer Name", value=curr_rec["Name"])
+                e_mobile = st.text_input("Mobile Number", value=curr_rec["Mobile"])
+                
+                s_idx = st.session_state.services_list.index(curr_rec["Service"]) if curr_rec["Service"] in st.session_state.services_list else len(st.session_state.services_list)-1
+                e_service = st.selectbox("Service", st.session_state.services_list, index=s_idx)
+                
+            with col_e2:
+                e_amount = st.number_input("Amount (₹)", value=int(curr_rec["Amount"]), step=10)
+                e_pay = st.radio("Payment Mode", ["Cash", "Online"], index=0 if curr_rec["Payment"] == "Cash" else 1)
+                e_expiry = st.text_input("Expiry Date (YYYY-MM-DD or N/A)", value=str(curr_rec["Expiry"]))
+                
+            if st.form_submit_button("🔄 Update Entry"):
+                update_record(selected_id, e_date.strftime("%Y-%m-%d"), e_name, e_mobile, e_service, e_amount, e_pay, e_expiry)
+                st.success("✅ Entry updated successfully!")
+                st.rerun()
