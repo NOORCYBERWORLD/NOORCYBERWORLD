@@ -199,12 +199,27 @@ if "custom_services" not in st.session_state:
 def get_all_services():
 
     services = (
-
         DEFAULT_SERVICES[:-1]
         +
         st.session_state.custom_services
-
     )
+
+    services = sorted(
+        set(
+            service.strip()
+            for service in services
+            if service and service.strip()
+        ),
+        key=lambda x: x.lower()
+    )
+
+    services.append("Other")
+
+    return services
+
+
+
+SERVICES = get_all_services()
 
     services = sorted(
 
