@@ -16,60 +16,6 @@ from reportlab.lib import colors
 # Page Configuration
 st.set_page_config(page_title="NOOR CYBER WORLD", layout="wide")
 
-st.markdown("""
-<style>
-.nc-header {
-    text-align: center;
-    padding: 18px 10px 24px;
-    margin-bottom: 15px;
-}
-.nc-title {
-    font-family: Arial, sans-serif;
-    font-size: 34px;
-    font-weight: 800;
-    letter-spacing: 3px;
-    color: white;
-    margin-bottom: 5px;
-}
-.nc-main-title {
-    font-family: Arial, sans-serif;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: #22d3ee;
-    margin-bottom: 8px;
-}
-.nc-sub {
-    font-size: 12px;
-    letter-spacing: 1.5px;
-    color: #cbd5e1;
-}
-.nc-status {
-    display: inline-block;
-    margin-top: 12px;
-    padding: 5px 14px;
-    border-radius: 20px;
-    background: rgba(34,197,94,0.12);
-    border: 1px solid rgba(34,197,94,0.35);
-    color: #86efac;
-    font-size: 11px;
-    font-weight: 600;
-}
-</style>
-
-<div class="nc-header">
-    <div class="nc-title">NOOR CYBER WORLD</div>
-    <div class="nc-main-title">CUSTOMERS MANAGEMENT SYSTEM</div>
-    <div class="nc-sub">DIGITAL SERVICE • CUSTOMER RECORD • SMART MANAGEMENT</div>
-    <div class="nc-status">● SYSTEM ONLINE</div>
-</div>
-""", unsafe_allow_html=True)
-
-# ============================================================
-# GOOGLE APPS SCRIPT URL
-# ============================================================
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbytGWMPZpnOWm6v2ibp7_nn0ZuvFb8VwWNpqBenI_gcuq_tH3w9RsYiF1zGLzfCDDgg/exec"
-
 # ============================================================
 # TIMEZONE & COLUMNS
 # ============================================================
@@ -139,17 +85,16 @@ if "editing_row" not in st.session_state:
     st.session_state.editing_row = None
 
 # ============================================================
-# STYLES
+# HEADER & CUSTOM CSS (RED/GREEN CARDS & ALERTS)
 # ============================================================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
 
 :root {
-    --red:#ff3b30;
-    --cyan:#22d3ee;
-    --blue:#3b82f6;
+    --red:#ef4444;
     --green:#22c55e;
+    --cyan:#22d3ee;
     --border:rgba(96,165,250,.22);
 }
 
@@ -167,6 +112,33 @@ st.markdown("""
     padding-bottom:3rem;
 }
 
+.nc-header {
+    text-align: center;
+    padding: 10px 10px 15px;
+    margin-bottom: 10px;
+}
+.nc-title {
+    font-family: Arial, sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: white;
+    margin-bottom: 2px;
+}
+.nc-main-title {
+    font-family: Arial, sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #22d3ee;
+    margin-bottom: 5px;
+}
+.nc-sub {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: #cbd5e1;
+}
+
 div[data-testid="stMetric"] {
     background: linear-gradient(145deg, rgba(15,23,42,.92), rgba(30,41,59,.72));
     border:1px solid var(--border);
@@ -178,11 +150,23 @@ div[data-testid="stMetric"] {
 div[data-testid="stMetricLabel"] { color:#cbd5e1; }
 div[data-testid="stMetricValue"] { font-weight:800; }
 
-.nc-card {
-    background: linear-gradient(145deg, rgba(15,23,42,.86), rgba(30,41,59,.62));
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
+/* GREEN CARD FOR CASH */
+.nc-card-green {
+    background: linear-gradient(145deg, rgba(22, 101, 52, 0.35), rgba(15, 23, 42, 0.85));
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    border-left: 6px solid #22c55e;
+    border-radius: 14px;
+    padding: 14px;
+    margin: 8px 0;
+}
+
+/* RED CARD FOR UDHARI / CREDIT */
+.nc-card-red {
+    background: linear-gradient(145deg, rgba(153, 27, 27, 0.35), rgba(15, 23, 42, 0.85));
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    border-left: 6px solid #ef4444;
+    border-radius: 14px;
+    padding: 14px;
     margin: 8px 0;
 }
 
@@ -205,17 +189,33 @@ div[data-testid="stMetricValue"] { font-weight:800; }
     line-height: 1.6;
 }
 
-.top-corner-stats span.gross {
-    color: #22d3ee;
-    font-weight: 700;
-}
+.top-corner-stats span.gross { color: #22d3ee; font-weight: 700; }
+.top-corner-stats span.net { color: #22c55e; font-weight: 700; }
 
-.top-corner-stats span.net {
-    color: #22c55e;
+.alert-badge {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    padding: 10px 16px;
+    border-radius: 12px;
     font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 15px;
+    display: inline-block;
 }
 </style>
+
+<div class="nc-header">
+    <div class="nc-title">NOOR CYBER WORLD</div>
+    <div class="nc-main-title">CUSTOMERS MANAGEMENT SYSTEM</div>
+    <div class="nc-sub">DIGITAL SERVICE • CUSTOMER RECORD • SMART MANAGEMENT</div>
+</div>
 """, unsafe_allow_html=True)
+
+# ============================================================
+# GOOGLE APPS SCRIPT URL
+# ============================================================
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbytGWMPZpnOWm6v2ibp7_nn0ZuvFb8VwWNpqBenI_gcuq_tH3w9RsYiF1zGLzfCDDgg/exec"
 
 # ============================================================
 # HELPER FUNCTIONS & API
@@ -341,15 +341,17 @@ def generate_pdf(df):
 # Fetch Data Live
 df_all = fetch_sheet_records()
 
-# Customer Names & Contacts List for Auto-Suggest
+# Unique Customer Names & Mobile mapping
 existing_names = sorted(list(set(df_all["name"].dropna().str.strip()))) if not df_all.empty else []
 name_to_mobile_map = {}
 if not df_all.empty:
     for _, r in df_all.iterrows():
-        if r["name"] and r["mobile"]:
-            name_to_mobile_map[r["name"].strip()] = r["mobile"].strip()
+        nm = str(r["name"]).strip()
+        mb = str(r["mobile"]).strip()
+        if nm and mb:
+            name_to_mobile_map[nm] = mb
 
-# Calculate Top Header Stats (Gross & Net)
+# Top Header Stats Display
 now_ist = datetime.now(IST)
 current_date_str = now_ist.strftime("%Y-%m-%d")
 current_month_str = now_ist.strftime("%Y-%m")
@@ -373,13 +375,12 @@ if not df_all.empty:
 else:
     day_gross = day_net = month_gross = month_net = year_gross = year_net = 0
 
-# Top Header Stats Display
 st.markdown(
     f"""
     <div class="top-corner-stats">
-        📅 <b>Today:</b> Gross <span class="gross">₹ {day_gross:,.0f}</span> | Net <span class="net">₹ {day_net:,.0f}</span><br>
-        🗓️ <b>Month:</b> Gross <span class="gross">₹ {month_gross:,.0f}</span> | Net <span class="net">₹ {month_net:,.0f}</span><br>
-        📊 <b>Year:</b> Gross <span class="gross">₹ {year_gross:,.0f}</span> | Net <span class="net">₹ {year_net:,.0f}</span>
+        📅 <b>Today:</b> Total <span class="gross">₹ {day_gross:,.0f}</span> | Net Profit <span class="net">₹ {day_net:,.0f}</span><br>
+        🗓️ <b>Month:</b> Total <span class="gross">₹ {month_gross:,.0f}</span> | Net Profit <span class="net">₹ {month_net:,.0f}</span><br>
+        📊 <b>Year:</b> Total <span class="gross">₹ {year_gross:,.0f}</span> | Net Profit <span class="net">₹ {year_net:,.0f}</span>
     </div>
     """,
     unsafe_allow_html=True
@@ -387,7 +388,7 @@ st.markdown(
 
 st.markdown("---")
 
-# Working Date Selector
+# Date Selector
 selected_date_str = st.session_state.selected_date.strftime("%Y-%m-%d")
 
 if not df_all.empty:
@@ -415,8 +416,9 @@ with n_col:
         st.rerun()
 
 # Tabs
-tab1, tab2, tab3 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "📊 TODAY'S ENTRIES & ADD ENTRY",
+    "🔴 UDHARI COLLECTION",
     "🔔 RENEWAL ALERTS",
     "📂 CURRENT RECORDS"
 ])
@@ -434,15 +436,15 @@ with tab1:
         total_gross = int(day_df["amount"].sum())
         total_net = int(day_df["net_amount"].sum())
         cash_sum = int(day_df.loc[day_df["payment"].str.strip().str.lower() == "cash", "amount"].sum())
-        online_sum = int(day_df.loc[day_df["payment"].str.strip().str.lower() == "online", "amount"].sum())
+        udhari_sum = int(day_df.loc[day_df["payment"].str.strip().str.lower() == "credit (udhari)", "amount"].sum())
     else:
-        total_gross = total_net = cash_sum = online_sum = 0
+        total_gross = total_net = cash_sum = udhari_sum = 0
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("DAY GROSS COLLECTION", f"₹ {total_gross:,}")
-    m2.metric("DAY NET PROFIT", f"₹ {total_net:,}")
-    m3.metric("CASH COLLECTION", f"₹ {cash_sum:,}")
-    m4.metric("ONLINE / UPI", f"₹ {online_sum:,}")
+    m1.metric("TOTAL COLLECTION", f"₹ {total_gross:,}")
+    m2.metric("TOTAL NET PROFIT", f"₹ {total_net:,}")
+    m3.metric("CASH RECEIVED", f"₹ {cash_sum:,}")
+    m4.metric("PENDING UDHARI", f"₹ {udhari_sum:,}")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -450,13 +452,17 @@ with tab1:
         st.info("ℹ️ No entries recorded for this date yet.")
     else:
         for idx, row in day_df.iterrows():
+            is_udhari = "udhari" in str(row['payment']).lower() or "credit" in str(row['payment']).lower()
+            card_class = "nc-card-red" if is_udhari else "nc-card-green"
+            badge = "🔴 UDHARI / CREDIT" if is_udhari else "🟢 CASH"
+
             c_info, c_btn1, c_btn2 = st.columns([6, 1, 1])
             with c_info:
                 st.markdown(
                     f"""
-                    <div class='nc-card'>
-                    <b>👤 {row['name']}</b> ({row['mobile']})<br>
-                    Service: <b>{row['service']}</b> | Gross: <b>₹ {float(row['amount']):,.0f}</b> | Net Profit: <b style='color:#22c55e;'>₹ {float(row['net_amount']):,.0f}</b> | Mode: <b>{row['payment']}</b><br>
+                    <div class='{card_class}'>
+                    <b>👤 {row['name']}</b> ({row['mobile']}) &nbsp;&nbsp;|&nbsp;&nbsp; <b>{badge}</b><br>
+                    Service: <b>{row['service']}</b> | Total Fee: <b>₹ {float(row['amount']):,.0f}</b> | Net Profit: <b>₹ {float(row['net_amount']):,.0f}</b><br>
                     Expiry: {row['expiry']}
                     </div>
                     """,
@@ -493,23 +499,26 @@ with tab1:
     left, right = st.columns(2)
 
     with left:
-        # Customer Name Selectbox with Custom Input Option
         if is_editing:
-            name_input = st.text_input("Customer Name*", value=edit_data.get("name", ""), key="input_name")
+            name_input = st.text_input("Customer Name*", value=edit_data.get("name", ""), key="input_name_edit")
         else:
-            name_options = ["-- Select Existing Customer / Type New Below --"] + existing_names
-            selected_existing_name = st.selectbox("Search / Select Existing Customer", name_options, key="select_existing_name")
-            
-            default_name_val = selected_existing_name if selected_existing_name != name_options[0] else ""
-            name_input = st.text_input("Customer Name (Type Name Here)*", value=default_name_val, key="input_name")
+            name_input = st.selectbox(
+                "Customer Name*",
+                options=existing_names,
+                index=None,
+                placeholder="Type name (e.g. Nawaj) or select existing...",
+                accept_new_options=True,
+                key="input_name_select"
+            )
+            if name_input is None:
+                name_input = ""
 
-        # Auto-Fill Mobile Number if existing name selected
         auto_mobile = ""
-        if name_input.strip() in name_to_mobile_map and not is_editing:
+        if name_input and name_input.strip() in name_to_mobile_map and not is_editing:
             auto_mobile = name_to_mobile_map[name_input.strip()]
             
         default_mobile = edit_data.get("mobile", "") if is_editing else auto_mobile
-        mobile_input = st.text_input("Mobile Number*", value=default_mobile, key="input_mobile")
+        mobile_input = st.text_input("Mobile Number*", value=default_mobile, key=f"input_mobile_{name_input}")
         
         curr_serv = edit_data.get("service", SERVICES[0])
         default_index = SERVICES.index(curr_serv) if curr_serv in SERVICES else SERVICES.index("Other")
@@ -523,10 +532,14 @@ with tab1:
             custom_service_input = ""
 
     with right:
-        amount = st.number_input("Gross Amount / Total Fee (₹)*", min_value=0, step=10, value=int(edit_data.get("amount", 0)), key="input_amount")
+        amount = st.number_input("Total Fee / Gross Amount (₹)*", min_value=0, step=10, value=int(edit_data.get("amount", 0)), key="input_amount")
         net_amount = st.number_input("Net Income / Profit (₹)*", min_value=0, step=10, value=int(edit_data.get("net_amount", 0)), key="input_net_amount")
         
-        payment = st.radio("Payment Mode", ["Cash", "Online"], index=0 if edit_data.get("payment", "Cash") == "Cash" else 1, horizontal=True, key="input_payment")
+        # ADDED CREDIT (UDHARI) OPTION
+        pay_opts = ["Cash", "Credit (Udhari)"]
+        curr_pay = edit_data.get("payment", "Cash")
+        pay_idx = 1 if "udhari" in curr_pay.lower() or "credit" in curr_pay.lower() else 0
+        payment = st.radio("Payment Status*", pay_opts, index=pay_idx, horizontal=True, key="input_payment")
         
         has_exp = str(edit_data.get("expiry", "N/A")).strip() not in ["N/A", ""]
         has_expiry = st.checkbox("Requires Renewal / Validity?", value=has_exp, key="input_expiry_check")
@@ -537,7 +550,7 @@ with tab1:
     with b_col1:
         submit_btn_label = "💾 UPDATE ENTRY" if is_editing else "⚡ SAVE ENTRY"
         if st.button(submit_btn_label, type="primary", use_container_width=True):
-            if not name_input.strip() or not mobile_input.strip():
+            if not str(name_input).strip() or not str(mobile_input).strip():
                 st.error("Please enter Customer Name and Mobile Number.")
             else:
                 final_service = service_selected
@@ -564,8 +577,8 @@ with tab1:
                 payload = {
                     "action": action_type,
                     "created_at": selected_date_str,
-                    "name": name_input.strip(),
-                    "mobile": mobile_input.strip(),
+                    "name": str(name_input).strip(),
+                    "mobile": str(mobile_input).strip(),
                     "service": final_service,
                     "amount": str(int(amount)),
                     "net_amount": str(int(net_amount)),
@@ -580,7 +593,11 @@ with tab1:
                 if ok:
                     st.session_state.editing_row = None
                     fetch_sheet_records.clear()
-                    st.session_state.success_message = "✅ Entry Saved & Synced Successfully!"
+                    
+                    # Prepare Thank You Message Link
+                    ty_msg = f"Dear {name_input.strip()}, Thank you for choosing NOOR CYBER WORLD for {final_service}! Total Amount: Rs.{amount}. We are happy to serve you."
+                    st.session_state.last_saved_wa = f"https://wa.me/91{mobile_input.strip()}?text={quote(ty_msg)}"
+                    st.session_state.success_message = "✅ Entry Saved Successfully!"
                     st.rerun()
                 else:
                     st.error(f"Failed to save: {msg}")
@@ -591,13 +608,55 @@ with tab1:
                 st.session_state.editing_row = None
                 st.rerun()
 
+    # SHOW THANK YOU SMS BUTTON IF RECENTLY SAVED
+    if "last_saved_wa" in st.session_state:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.success("🎉 Entry successfully saved!")
+        st.link_button("💬 SEND THANK YOU SMS / WHATSAPP TO CUSTOMER", st.session_state.last_saved_wa, use_container_width=True)
+
 # ============================================================
-# TAB 2: RENEWAL ALERTS
+# TAB 2: UDHARI COLLECTION (NEW DEDICATED TAB)
 # ============================================================
 with tab2:
+    st.markdown("<div class='nc-section'>🔴 Pending Udhari / Credit Customer List</div>", unsafe_allow_html=True)
+
+    udhari_df = pd.DataFrame()
+    if not df_all.empty:
+        udhari_mask = df_all["payment"].str.strip().str.lower().str.contains("credit|udhari", na=False)
+        udhari_df = df_all[udhari_mask]
+
+    if udhari_df.empty:
+        st.success("🎉 No pending udhari! All payments are clear.")
+    else:
+        total_pending_amount = udhari_df["amount"].sum()
+        st.error(f"⚠️ Total Pending Udhari Across All Records: **₹ {total_pending_amount:,.0f}** ({len(udhari_df)} Customers)")
+        st.markdown("---")
+
+        for _, row in udhari_df.iterrows():
+            st.markdown(
+                f"""
+                <div class='nc-card-red'>
+                <b>🔴 {row['name']}</b> ({row['mobile']})<br>
+                Service: <b>{row['service']}</b> | Pending Amount: <b style='color:#ef4444; font-size:16px;'>₹ {float(row['amount']):,.0f}</b><br>
+                Date of Service: {row['created_at']}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            udhari_msg = f"Hello {row['name']}, this is a gentle reminder from NOOR CYBER WORLD. Your payment of Rs.{int(row['amount'])} for {row['service']} is pending. Please clear your balance as soon as possible. Thank you!"
+            wa_udhari_url = f"https://wa.me/91{row['mobile']}?text={quote(udhari_msg)}"
+            st.link_button(f"💬 SEND UDHARI REMINDER SMS TO {row['name']}", wa_udhari_url)
+            st.markdown("<br>", unsafe_allow_html=True)
+
+# ============================================================
+# TAB 3: RENEWAL ALERTS & COUNT BADGE
+# ============================================================
+with tab3:
     st.markdown("<div class='nc-section'>🔔 Renewal Alerts (Next 15 Days)</div>", unsafe_allow_html=True)
-    found = False
+    
     today = today_ist()
+    renewals_list = []
 
     if not df_all.empty:
         for _, row in df_all.iterrows():
@@ -608,33 +667,41 @@ with tab2:
                     days_left = (exp_date - today).days
 
                     if 0 <= days_left <= 15:
-                        found = True
-                        formatted = exp_date.strftime("%d-%m-%Y")
-
-                        st.markdown(
-                            f"""
-                            <div class='nc-card'>
-                            <b>🔴 {row['name']}</b><br>
-                            Service: {row['service']}<br>
-                            Expiry Date: <b>{formatted}</b> ({days_left} days left)
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-
-                        msg = f"Hello {row['name']}, your service {row['service']} is expiring on {formatted}. Please visit NOOR CYBER WORLD to renew."
-                        wa = f"https://wa.me/91{row['mobile']}?text={quote(msg)}"
-                        st.link_button("💬 SEND WHATSAPP ALERTS", wa)
+                        renewals_list.append((row, exp_date, days_left))
             except Exception:
                 continue
 
-    if not found:
+    # RENEWAL COUNT ALERT DISPLAY
+    if renewals_list:
+        st.markdown(
+            f"<div class='alert-badge'>⚠️ ALERT: {len(renewals_list)} Renewal(s) Pending in the Next 15 Days!</div>",
+            unsafe_allow_html=True
+        )
+
+        for row, exp_date, days_left in renewals_list:
+            formatted = exp_date.strftime("%d-%m-%Y")
+            st.markdown(
+                f"""
+                <div class='nc-card-red'>
+                <b>🔴 {row['name']}</b> ({row['mobile']})<br>
+                Service: <b>{row['service']}</b><br>
+                Expiry Date: <b>{formatted}</b> ({days_left} days remaining)
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            msg = f"Hello {row['name']}, your service {row['service']} is expiring on {formatted}. Please visit NOOR CYBER WORLD to renew it on time."
+            wa = f"https://wa.me/91{row['mobile']}?text={quote(msg)}"
+            st.link_button(f"💬 SEND RENEWAL SMS TO {row['name']}", wa)
+            st.markdown("<br>", unsafe_allow_html=True)
+    else:
         st.success("🎉 No renewals due in the next 15 days.")
 
 # ============================================================
-# TAB 3: CURRENT RECORDS & DOWNLOADS
+# TAB 4: CURRENT RECORDS & DOWNLOADS
 # ============================================================
-with tab3:
+with tab4:
     st.markdown("<div class='nc-section'>📂 All Customer Records</div>", unsafe_allow_html=True)
 
     if df_all.empty:
@@ -664,11 +731,15 @@ with tab3:
         st.markdown("---")
 
         for _, row in df_all.iterrows():
+            is_udhari = "udhari" in str(row['payment']).lower() or "credit" in str(row['payment']).lower()
+            card_class = "nc-card-red" if is_udhari else "nc-card-green"
+            badge = "🔴 CREDIT" if is_udhari else "🟢 CASH"
+
             st.markdown(
                 f"""
-                <div class='nc-card'>
-                <b>☁️ {row['name']}</b> ({row['mobile']})<br>
-                Service: <b>{row['service']}</b> | Gross: <b>₹ {float(row['amount']):,.0f}</b> | Net Profit: <b style='color:#22c55e;'>₹ {float(row['net_amount']):,.0f}</b> | Mode: {row['payment']}<br>
+                <div class='{card_class}'>
+                <b>☁️ {row['name']}</b> ({row['mobile']}) &nbsp;|&nbsp; {badge}<br>
+                Service: <b>{row['service']}</b> | Total Fee: <b>₹ {float(row['amount']):,.0f}</b> | Net Profit: <b>₹ {float(row['net_amount']):,.0f}</b><br>
                 Date: {row['created_at']} | Expiry: {row['expiry']}
                 </div>
                 """,
