@@ -695,23 +695,7 @@ textarea,
 """, unsafe_allow_html=True)
 
 
-st.markdown("""
-<div class="nc-header">
 
-    <div class="nc-title">
-        NOOR CYBER WORLD
-    </div>
-
-    <div class="nc-sub">
-        DIGITAL SERVICE • CUSTOMER MANAGEMENT • SMART RECORD SYSTEM • SECURE LOCAL BACKUP
-    </div>
-
-    <div class="nc-status">
-        ● SYSTEM ONLINE
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
 
 
 # ============================================================
