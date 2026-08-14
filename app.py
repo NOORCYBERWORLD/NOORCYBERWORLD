@@ -192,7 +192,6 @@ DEFAULT_SERVICES = sorted(
 # ============================================================
 
 if "custom_services" not in st.session_state:
-
     st.session_state.custom_services = []
 
 
@@ -200,8 +199,7 @@ def get_all_services():
 
     services = (
         DEFAULT_SERVICES[:-1]
-        +
-        st.session_state.custom_services
+        + st.session_state.custom_services
     )
 
     services = sorted(
@@ -213,39 +211,22 @@ def get_all_services():
         key=lambda x: x.lower()
     )
 
+    # Keep Other at the bottom
     services.append("Other")
 
     return services
 
 
-
+# Compatibility with old code
 SERVICES = get_all_services()
-
-    services = sorted(
-
-        set(
-
-            service.strip()
-
-            for service in services
-
-            if service
-            and service.strip()
-
-        ),
-
-        key=lambda x: x.lower()
-
-    )
-
-    services.append("Other")
-
-    return services
 
 
 # ============================================================
 # SESSION VARIABLES
 # ============================================================
+
+if "local_counter" not in st.session_state:
+    st.session_state.local_counter = 0
 
 if "local_counter" not in st.session_state:
 
