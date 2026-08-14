@@ -8,18 +8,58 @@ from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from urllib.parse import quote
 
+st.markdown("""
+<style>
+.nc-header {
+    text-align: center;
+    padding: 18px 10px 24px;
+    margin-bottom: 15px;
+}
 
-# ============================================================
-# PAGE CONFIG
-# ============================================================
+.nc-title {
+    font-family: Arial, sans-serif;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: white;
+    margin-bottom: 5px;
+}
 
-st.set_page_config(
-    page_title="NOOR CYBER WORLD",
-    page_icon="🖥️",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+.nc-main-title {
+    font-family: Arial, sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #22d3ee;
+    margin-bottom: 8px;
+}
 
+.nc-sub {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    color: #cbd5e1;
+}
+
+.nc-status {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.35);
+    color: #86efac;
+    font-size: 11px;
+    font-weight: 600;
+}
+</style>
+
+<div class="nc-header">
+    <div class="nc-title">NOOR CYBER WORLD</div>
+    <div class="nc-main-title">CUSTOMERS MANAGEMENT SYSTEM</div>
+    <div class="nc-sub">DIGITAL SERVICE • CUSTOMER RECORD • SMART MANAGEMENT</div>
+    <div class="nc-status">● SYSTEM ONLINE</div>
+</div>
+""", unsafe_allow_html=True)
 
 # ============================================================
 # GOOGLE APPS SCRIPT
