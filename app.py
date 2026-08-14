@@ -4,6 +4,7 @@ import requests
 import json
 import uuid
 
+from streamlit_js_eval import streamlit_js_eval
 from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from urllib.parse import quote
@@ -217,7 +218,6 @@ def get_all_services():
     return services
 
 
-# Compatibility with old code
 SERVICES = get_all_services()
 
 
@@ -1000,18 +1000,87 @@ def local_storage_set(records):
         return None
 
 
+# ============================================================
+# SAFE BROWSER LOCAL STORAGE
+# ============================================================
+
+LOCAL_STORAGE_KEY = "noor_cyber_pending_v3"
+
+
+def local_storage_get():
+
+    try:
+
+        raw = streamlit_js_eval(
+            js_expressions=f"""
+            localStorage.getItem('{LOCAL_STORAGE_KEY}')
+            """,
+            want_output=True,
+            key="noor_local_get_v3"
+        )
+
+        # Component अजून response देत नसेल
+        if raw is None:
+            return None
+
+        # localStorage मध्ये काहीच नाही
+        if raw == "":
+            return []
+
+        if isinstance(raw, str):
+
+            try:
+                return json.loads(raw)
+            except Exception:
+                return []
+
+        return []
+
+    except Exception:
+        return None
+
+
+def local_storage_set(records):
+
+    try:
+
+        payload = json.dumps(
+            records,
+            ensure_ascii=False
+        )
+
+        expression = (
+            f"localStorage.setItem("
+            f"{json.dumps(LOCAL_STORAGE_KEY)},"
+            f"{json.dumps(payload)}"
+            f"); true"
+        )
+
+        return streamlit_js_eval(
+            js_expressions=expression,
+            want_output=True,
+            key=f"noor_local_set_{uuid.uuid4().hex}"
+        )
+
+    except Exception:
+
+        return None
+
+
 def local_storage_clear():
 
     try:
 
-        return streamlit_js_eval(
-            js_expressions=
-                "localStorage.removeItem("
-                "'noor_cyber_pending_v2'"
-                "); true",
+        expression = (
+            f"localStorage.removeItem("
+            f"{json.dumps(LOCAL_STORAGE_KEY)}"
+            f"); true"
+        )
 
-            key=
-                f"noor_local_clear_{uuid.uuid4().hex}"
+        return streamlit_js_eval(
+            js_expressions=expression,
+            want_output=True,
+            key=f"noor_local_clear_{uuid.uuid4().hex}"
         )
 
     except Exception:
@@ -1023,24 +1092,59 @@ def local_records_df():
 
     records = local_storage_get()
 
+    # Browser storage response अजून आलेला नसेल
+    if records is None:
+        return empty_df()
+
     if not records:
-
         return empty_df()
 
-    df = pd.DataFrame(records)
+    try:
 
-    if df.empty:
+        df = pd.DataFrame(records)
+
+        if df.empty:
+            return empty_df()
+
+        df["_source"] = "local"
+        df["_row_number"] = -1
+
+        return clean_df(df)
+
+    except Exception:
 
         return empty_df()
-
-    df["_source"] = "local"
-
-    df["_row_number"] = -1
-
-    return clean_df(df)
 
 
 def persist_local_df(df):
+
+    if df is None or df.empty:
+        return
+
+    local = df[
+        df["_source"] == "local"
+    ].copy()
+
+    if local.empty:
+        return
+
+    keep = [
+        "created_at",
+        "name",
+        "mobile",
+        "service",
+        "amount",
+        "payment",
+        "expiry",
+        "_local_id"
+    ]
+
+    records = (
+        local[keep]
+        .to_dict(orient="records")
+    )
+
+    local_storage_set(records)
 
     if df is None or df.empty:
 
@@ -1343,36 +1447,7 @@ if "local_boot_loaded" not in st.session_state:
 if "local_counter" not in st.session_state:
 
     st.session_state.local_counter = 0
-    # ============================================================
-# CUSTOM SERVICES
-# ============================================================
-
-if "custom_services" not in st.session_state:
-
-    st.session_state.custom_services = []
-
-
-def get_all_services():
-
-    services = (
-        DEFAULT_SERVICES
-        + st.session_state.custom_services
-    )
-
-    services = sorted(
-        set(
-            s.strip()
-            for s in services
-            if s and s.strip()
-            and s.strip().lower() != "other"
-        ),
-        key=lambda x: x.lower()
-    )
-
-    # Other always at bottom
-    services.append("Other")
-
-    return services
+       
 
 
 if "selected_date" not in st.session_state:
@@ -1938,11 +2013,44 @@ with tab1:
             key="add_service"
         )
 
-        custom_service = st.text_input(
-            "Custom Service (if Other)",
-            key="add_custom_service"
+       if service == "Other":
+
+    custom_service = st.text_input(
+        "Custom Service Name*",
+        key="add_custom_service",
+        placeholder="Enter new service name..."
+    )
+
+else:
+
+    custom_service = ""
+        )
+if service == "Other":
+
+    if not custom_service.strip():
+
+        st.error(
+            "Please enter the custom service name."
         )
 
+        st.stop()
+
+    final_service = custom_service.strip()
+
+    if final_service not in st.session_state.custom_services:
+
+        st.session_state.custom_services.append(
+            final_service
+        )
+
+        st.session_state.custom_services = sorted(
+            set(st.session_state.custom_services),
+            key=lambda x: x.lower()
+        )
+
+else:
+
+    final_service = service
 
     with right:
 
