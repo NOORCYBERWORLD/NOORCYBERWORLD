@@ -2,11 +2,16 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
-import uuid
-
+import io
 from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from urllib.parse import quote
+
+# Reportlab for real PDF generation
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 # Page Configuration
 st.set_page_config(page_title="NOOR CYBER WORLD", layout="wide")
@@ -70,7 +75,6 @@ st.markdown("""
 
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzpDRn2srFz_HrHgjUs-EpAn3HzUA-gv9Rb5P-apR5uC83JOPYSDjggE8NKl2MC9S3f/exec"
 
-
 # ============================================================
 # TIMEZONE & COLUMNS
 # ============================================================
@@ -87,10 +91,6 @@ COLUMNS = [
     "expiry",
     "_row_number"
 ]
-
-# ============================================================
-# DEFAULT SERVICES LIST WITH 'OTHER'
-# ============================================================
 
 DEFAULT_SERVICES = [
     "Aadhaar Card Download / Update",
@@ -137,16 +137,15 @@ def get_all_services():
 
 SERVICES = get_all_services()
 
-# ============================================================
-# SESSION VARIABLES
-# ============================================================
-
+# Session State Initializations
 if "selected_date" not in st.session_state:
     st.session_state.selected_date = datetime.now(IST).date()
 
 if "records_cache" not in st.session_state:
     st.session_state.records_cache = pd.DataFrame(columns=COLUMNS)
 
+if "editing_row" not in st.session_state:
+    st.session_state.editing_row = None
 
 # ============================================================
 # STYLES & UI DESIGN
@@ -222,9 +221,8 @@ div[data-testid="stMetricValue"] { font-weight:800; }
 </style>
 """, unsafe_allow_html=True)
 
-
 # ============================================================
-# HELPER FUNCTIONS & SHEET API
+# HELPER FUNCTIONS & API
 # ============================================================
 
 def today_ist():
@@ -261,14 +259,14 @@ def fetch_sheet_records():
             timeout=20
         )
         if response.status_code != 200:
-            return (empty_df(), f"Google Apps Script HTTP {response.status_code}")
+            return (empty_df(), f"HTTP Error {response.status_code}")
 
         data = response.json()
         if isinstance(data, dict):
-            return (empty_df(), str(data.get("error", "Unexpected response")))
+            return (empty_df(), str(data.get("error", "Error loading data")))
 
         if not isinstance(data, list):
-            return (empty_df(), "Invalid response list.")
+            return (empty_df(), "Invalid response.")
 
         df = pd.DataFrame(data)
         if df.empty:
@@ -282,15 +280,62 @@ def api_post(payload):
     try:
         response = requests.post(WEB_APP_URL, data=payload, timeout=20, allow_redirects=True)
         data = response.json()
-        return (bool(data.get("success")), str(data.get("message", data.get("error", "Request failed"))))
+        return (bool(data.get("success")), str(data.get("message", data.get("error", "Failed"))))
     except Exception as e:
         return (False, str(e))
 
+def generate_pdf(df):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
+    elements = []
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=colors.HexColor('#0f172a'),
+        alignment=1,
+        spaceAfter=15
+    )
+    
+    elements.append(Paragraph("NOOR CYBER WORLD - CUSTOMER RECORDS", title_style))
+    elements.append(Spacer(1, 10))
 
-# ============================================================
-# INITIAL LOAD FROM SHEET
-# ============================================================
+    headers = ["Date", "Name", "Mobile", "Service", "Amount", "Payment", "Expiry"]
+    table_data = [headers]
 
+    for _, row in df.iterrows():
+        table_data.append([
+            str(row["created_at"]),
+            str(row["name"]),
+            str(row["mobile"]),
+            str(row["service"]),
+            f"Rs. {row['amount']}",
+            str(row["payment"]),
+            str(row["expiry"])
+        ])
+
+    t = Table(table_data, colWidths=[65, 100, 80, 150, 55, 55, 65])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e293b')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 9),
+        ('BOTTOMPADDING', (0,0), (-1,0), 8),
+        ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f8fafc')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,1), (-1,-1), 8),
+    ]))
+    
+    elements.append(t)
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+# Initial Data Load
 if "data_loaded" not in st.session_state:
     sheet_data, err = fetch_sheet_records()
     st.session_state.records_cache = sheet_data
@@ -298,11 +343,7 @@ if "data_loaded" not in st.session_state:
 
 df_all = clean_df(st.session_state.records_cache)
 
-
-# ============================================================
-# CALCULATE TOTALS (DAY, MONTH, YEAR) FOR TOP-RIGHT CORNER
-# ============================================================
-
+# Calculate Top Right Corner Totals
 now_ist = datetime.now(IST)
 current_date_str = now_ist.strftime("%Y-%m-%d")
 current_month_str = now_ist.strftime("%Y-%m")
@@ -310,50 +351,27 @@ current_year_str = now_ist.strftime("%Y")
 
 if not df_all.empty:
     created_dates = pd.to_datetime(df_all["created_at"], errors="coerce")
-    
     day_total_val = df_all[created_dates.dt.strftime("%Y-%m-%d") == current_date_str]["amount"].sum()
     month_total_val = df_all[created_dates.dt.strftime("%Y-%m") == current_month_str]["amount"].sum()
     year_total_val = df_all[created_dates.dt.strftime("%Y") == current_year_str]["amount"].sum()
 else:
-    day_total_val = 0
-    month_total_val = 0
-    year_total_val = 0
+    day_total_val = month_total_val = year_total_val = 0
 
-
-# ============================================================
-# TOP BAR WITH REFRESH & RIGHT CORNER TOTALS
-# ============================================================
-
-a1, a2 = st.columns([3, 4])
-
-with a1:
-    if st.button("🔄 REFRESH DATA FROM SHEET", use_container_width=True):
-        fresh, err = fetch_sheet_records()
-        if err:
-            st.error(err)
-        else:
-            st.session_state.records_cache = fresh
-            st.success("✅ Records refreshed from Google Sheet!")
-            st.rerun()
-
-with a2:
-    st.markdown(
-        f"""
-        <div class="top-corner-stats">
-            📅 <b>Day Total:</b> <span>₹ {day_total_val:,.0f}</span> &nbsp;|&nbsp; 
-            🗓️ <b>Month Total:</b> <span>₹ {month_total_val:,.0f}</span> &nbsp;|&nbsp; 
-            📊 <b>Year Total:</b> <span>₹ {year_total_val:,.0f}</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+# Top Header Stats
+st.markdown(
+    f"""
+    <div class="top-corner-stats">
+        📅 <b>Day Total:</b> <span>₹ {day_total_val:,.0f}</span> &nbsp;|&nbsp; 
+        🗓️ <b>Month Total:</b> <span>₹ {month_total_val:,.0f}</span> &nbsp;|&nbsp; 
+        📊 <b>Year Total:</b> <span>₹ {year_total_val:,.0f}</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.markdown("---")
 
-# ============================================================
-# DATE SELECTOR
-# ============================================================
-
+# Working Date Selector
 selected_date_str = st.session_state.selected_date.strftime("%Y-%m-%d")
 
 if not df_all.empty:
@@ -380,11 +398,7 @@ with n_col:
         st.session_state.selected_date += timedelta(days=1)
         st.rerun()
 
-
-# ============================================================
-# TABS
-# ============================================================
-
+# Tabs
 tab1, tab2, tab3 = st.tabs([
     "📊 TODAY'S ENTRIES & ADD ENTRY",
     "🔔 RENEWAL ALERTS",
@@ -392,7 +406,7 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # ============================================================
-# TAB 1: TODAY'S ENTRIES & ENTRY FORM
+# TAB 1: TODAY'S ENTRIES & ADD / EDIT ENTRY
 # ============================================================
 
 with tab1:
@@ -418,98 +432,135 @@ with tab1:
     if day_df.empty:
         st.info("ℹ️ No entries recorded for this date yet.")
     else:
-        show_day = day_df.drop(columns=["_row_number"], errors="ignore").reset_index(drop=True)
-        st.dataframe(show_day, use_container_width=True, hide_index=True)
+        for idx, row in day_df.iterrows():
+            c_info, c_btn1, c_btn2 = st.columns([6, 1, 1])
+            with c_info:
+                st.markdown(
+                    f"""
+                    <div class='nc-card'>
+                    <b>👤 {row['name']}</b> ({row['mobile']})<br>
+                    Service: <b>{row['service']}</b> | Amount: <b>₹ {float(row['amount']):,.0f}</b> | Payment: <b>{row['payment']}</b><br>
+                    Expiry: {row['expiry']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            with c_btn1:
+                if st.button("✏️ Edit", key=f"edit_{idx}", use_container_width=True):
+                    st.session_state.editing_row = row.to_dict()
+                    st.rerun()
+            with c_btn2:
+                if st.button("🗑️ Delete", key=f"del_{idx}", use_container_width=True):
+                    with st.spinner("Deleting..."):
+                        payload = {
+                            "action": "delete",
+                            "row_number": str(row["_row_number"]),
+                            "name": str(row["name"]),
+                            "created_at": str(row["created_at"])
+                        }
+                        ok, msg = api_post(payload)
+                        if ok:
+                            st.session_state.records_cache = st.session_state.records_cache.drop(idx).reset_index(drop=True)
+                            st.session_state.success_message = "Deleted successfully!"
+                            st.rerun()
+                        else:
+                            st.error(f"Error: {msg}")
 
     st.markdown("---")
-    st.markdown("<div class='nc-section'>➕ Add New Customer Entry</div>", unsafe_allow_html=True)
+    
+    # FORM: ADD OR EDIT
+    is_editing = st.session_state.editing_row is not None
+    form_title = "✏️ Edit Customer Entry" if is_editing else "➕ Add New Customer Entry"
+    st.markdown(f"<div class='nc-section'>{form_title}</div>", unsafe_allow_html=True)
+
+    edit_data = st.session_state.editing_row or {}
 
     left, right = st.columns(2)
 
     with left:
-        name = st.text_input("Customer Name*", key="add_name")
-        mobile = st.text_input("Mobile Number*", key="add_mobile")
+        name = st.text_input("Customer Name*", value=edit_data.get("name", ""), key="input_name")
+        mobile = st.text_input("Mobile Number*", value=edit_data.get("mobile", ""), key="input_mobile")
         
-        # SERVICE SELECTION DROPDOWN WITH OTHER
-        service_selected = st.selectbox("Search / Select Service*", SERVICES, key="add_service")
+        curr_serv = edit_data.get("service", SERVICES[0])
+        default_index = SERVICES.index(curr_serv) if curr_serv in SERVICES else SERVICES.index("Other")
+        
+        service_selected = st.selectbox("Search / Select Service*", SERVICES, index=default_index, key="input_service")
 
-        # IF OTHER IS SELECTED, SHOW CUSTOM TEXT BOX
         if service_selected == "Other":
-            custom_service_input = st.text_input(
-                "Custom Service Name*",
-                key="add_custom_service",
-                placeholder="Enter new service name..."
-            )
+            custom_val = curr_serv if curr_serv not in SERVICES else ""
+            custom_service_input = st.text_input("Custom Service Name*", value=custom_val, key="input_custom_service")
         else:
             custom_service_input = ""
 
     with right:
-        amount = st.number_input("Amount (₹)", min_value=0, step=10, key="add_amount")
-        payment = st.radio("Payment Mode", ["Cash", "Online"], horizontal=True, key="add_payment")
-        has_expiry = st.checkbox("Requires Renewal / Validity?", key="add_expiry_check")
-        validity_unit = st.selectbox("Validity Unit", ["Days", "Months", "Years"], index=1, key="add_validity_unit")
-        validity_value = st.number_input("Validity Duration", min_value=1, value=1, key="add_validity_value")
+        amount = st.number_input("Amount (₹)", min_value=0, step=10, value=int(edit_data.get("amount", 0)), key="input_amount")
+        payment = st.radio("Payment Mode", ["Cash", "Online"], index=0 if edit_data.get("payment", "Cash") == "Cash" else 1, horizontal=True, key="input_payment")
+        
+        has_exp = edit_data.get("expiry", "N/A") != "N/A"
+        has_expiry = st.checkbox("Requires Renewal / Validity?", value=has_exp, key="input_expiry_check")
+        validity_unit = st.selectbox("Validity Unit", ["Days", "Months", "Years"], index=1, key="input_validity_unit")
+        validity_value = st.number_input("Validity Duration", min_value=1, value=1, key="input_validity_value")
 
-    if st.button("⚡ SAVE ENTRY", type="primary", use_container_width=True):
-        if not name.strip() or not mobile.strip():
-            st.error("Please enter Customer Name and Mobile Number.")
-        else:
-            final_service = service_selected
+    b_col1, b_col2 = st.columns(2)
+    with b_col1:
+        submit_btn_label = "💾 UPDATE ENTRY" if is_editing else "⚡ SAVE ENTRY"
+        if st.button(submit_btn_label, type="primary", use_container_width=True):
+            if not name.strip() or not mobile.strip():
+                st.error("Please enter Customer Name and Mobile Number.")
+            else:
+                final_service = service_selected
+                if service_selected == "Other":
+                    if not custom_service_input.strip():
+                        st.error("Please enter the Custom Service Name.")
+                        st.stop()
+                    final_service = custom_service_input.strip()
+                    if final_service not in st.session_state.custom_services:
+                        st.session_state.custom_services.append(final_service)
 
-            if service_selected == "Other":
-                if not custom_service_input.strip():
-                    st.error("Please enter the Custom Service Name.")
-                    st.stop()
-                
-                final_service = custom_service_input.strip()
+                expiry = "N/A"
+                if has_expiry:
+                    base = st.session_state.selected_date
+                    if validity_unit == "Days":
+                        expiry_date = base + timedelta(days=int(validity_value))
+                    elif validity_unit == "Months":
+                        expiry_date = base + relativedelta(months=int(validity_value))
+                    else:
+                        expiry_date = base + relativedelta(years=int(validity_value))
+                    expiry = expiry_date.strftime("%Y-%m-%d")
 
-                if final_service not in st.session_state.custom_services:
-                    st.session_state.custom_services.append(final_service)
-
-            expiry = "N/A"
-            if has_expiry:
-                base = st.session_state.selected_date
-                if validity_unit == "Days":
-                    expiry_date = base + timedelta(days=int(validity_value))
-                elif validity_unit == "Months":
-                    expiry_date = base + relativedelta(months=int(validity_value))
-                else:
-                    expiry_date = base + relativedelta(years=int(validity_value))
-
-                expiry = expiry_date.strftime("%Y-%m-%d")
-
-            payload = {
-                "action": "add",
-                "created_at": selected_date_str,
-                "name": name.strip(),
-                "mobile": mobile.strip(),
-                "service": final_service,
-                "amount": str(int(amount)),
-                "payment": payment,
-                "expiry": expiry
-            }
-
-            with st.spinner("Saving to Google Sheet..."):
-                ok, msg = api_post(payload)
-
-            if ok:
-                new_row = {
+                action_type = "edit" if is_editing else "add"
+                payload = {
+                    "action": action_type,
                     "created_at": selected_date_str,
                     "name": name.strip(),
                     "mobile": mobile.strip(),
                     "service": final_service,
-                    "amount": int(amount),
+                    "amount": str(int(amount)),
                     "payment": payment,
                     "expiry": expiry,
-                    "_row_number": -1
+                    "row_number": str(edit_data.get("_row_number", ""))
                 }
 
-                st.session_state.records_cache = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
-                st.session_state.success_message = f"✅ Entry for '{name}' saved successfully in Google Sheet!"
-                st.rerun()
-            else:
-                st.error(f"Failed to save entry: {msg}")
+                with st.spinner("Saving to Google Sheet..."):
+                    ok, msg = api_post(payload)
 
+                if ok:
+                    # Clear edit mode
+                    st.session_state.editing_row = None
+                    # Reload fresh data
+                    fresh, err = fetch_sheet_records()
+                    if not err:
+                        st.session_state.records_cache = fresh
+                    st.session_state.success_message = "✅ Entry Saved & Synced Successfully!"
+                    st.rerun()
+                else:
+                    st.error(f"Failed to save: {msg}")
+
+    with b_col2:
+        if is_editing:
+            if st.button("❌ CANCEL EDIT", use_container_width=True):
+                st.session_state.editing_row = None
+                st.rerun()
 
 # ============================================================
 # TAB 2: RENEWAL ALERTS
@@ -552,9 +603,8 @@ with tab2:
     if not found:
         st.success("🎉 No renewals due in the next 15 days.")
 
-
 # ============================================================
-# TAB 3: CURRENT RECORDS
+# TAB 3: CURRENT RECORDS & DOWNLOADS
 # ============================================================
 
 with tab3:
@@ -575,11 +625,12 @@ with tab3:
                 use_container_width=True
             )
         with b2:
+            pdf_bytes = generate_pdf(export_df)
             st.download_button(
                 "📄 DOWNLOAD PDF",
-                data=export_df.to_string().encode("utf-8"),
-                file_name="NOOR_CYBER_WORLD_RECORDS.txt",
-                mime="text/plain",
+                data=pdf_bytes,
+                file_name="NOOR_CYBER_WORLD_RECORDS.pdf",
+                mime="application/pdf",
                 use_container_width=True
             )
 
