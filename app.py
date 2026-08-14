@@ -9,6 +9,9 @@ from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from urllib.parse import quote
 
+# Page Configuration
+st.set_page_config(page_title="NOOR CYBER WORLD", layout="wide")
+
 st.markdown("""
 <style>
 .nc-header {
@@ -63,29 +66,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# GOOGLE APPS SCRIPT
+# GOOGLE APPS SCRIPT URL (HARDCODED)
 # ============================================================
 
-WEB_APP_URL = (
-    "https://script.google.com/macros/s/AKfycbzpDRn2srFz_HrHgjUs-EpAn3HzUA-gv9Rb5P-apR5uC83JOPYSDjggE8NKl2MC9S3f/exec"
-)
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzpDRn2srFz_HrHgjUs-EpAn3HzUA-gv9Rb5P-apR5uC83JOPYSDjggE8NKl2MC9S3f/exec"
 
 
 # ============================================================
-# TIMEZONE
+# TIMEZONE & COLUMNS
 # ============================================================
 
-IST = timezone(
-    timedelta(
-        hours=5,
-        minutes=30
-    )
-)
-
-
-# ============================================================
-# COLUMNS
-# ============================================================
+IST = timezone(timedelta(hours=5, minutes=30))
 
 COLUMNS = [
     "created_at",
@@ -100,9 +91,8 @@ COLUMNS = [
     "_local_id"
 ]
 
-
 # ============================================================
-# DEFAULT SERVICES
+# DEFAULT SERVICES LIST WITH 'OTHER'
 # ============================================================
 
 DEFAULT_SERVICES = [
@@ -134,56 +124,21 @@ DEFAULT_SERVICES = [
     "Shop Act License",
     "Udyam Aadhaar / MSME Registration",
     "Voter ID Card Apply / Correction",
-    "Xerox / Color Printout / Lamination / Scanning",
-    "Other"
+    "Xerox / Color Printout / Lamination / Scanning"
 ]
 
-
-# ============================================================
-# SORT SERVICES
-# ============================================================
-
-DEFAULT_SERVICES = sorted(
-    [
-        service
-        for service in DEFAULT_SERVICES
-        if service != "Other"
-    ],
-    key=lambda x: x.lower()
-) + ["Other"]
-
-
-# ============================================================
-# CUSTOM SERVICES
-# ============================================================
+DEFAULT_SERVICES = sorted(DEFAULT_SERVICES, key=lambda x: x.lower()) + ["Other"]
 
 if "custom_services" not in st.session_state:
     st.session_state.custom_services = []
 
-
 def get_all_services():
-    services = (
-        DEFAULT_SERVICES[:-1]
-        + st.session_state.custom_services
-    )
-
-    services = sorted(
-        set(
-            service.strip()
-            for service in services
-            if service and service.strip()
-        ),
-        key=lambda x: x.lower()
-    )
-
-    # Keep Other at the bottom
+    services = DEFAULT_SERVICES[:-1] + st.session_state.custom_services
+    services = sorted(set(s.strip() for s in services if s and s.strip()), key=lambda x: x.lower())
     services.append("Other")
-
     return services
 
-
 SERVICES = get_all_services()
-
 
 # ============================================================
 # SESSION VARIABLES
@@ -193,9 +148,7 @@ if "local_counter" not in st.session_state:
     st.session_state.local_counter = 0
 
 if "selected_date" not in st.session_state:
-    st.session_state.selected_date = (
-        datetime.now(IST).date()
-    )
+    st.session_state.selected_date = datetime.now(IST).date()
 
 if "edit_key" not in st.session_state:
     st.session_state.edit_key = None
@@ -204,19 +157,15 @@ if "delete_key" not in st.session_state:
     st.session_state.delete_key = None
 
 if "records_cache" not in st.session_state:
-    st.session_state.records_cache = pd.DataFrame(
-        columns=COLUMNS
-    )
+    st.session_state.records_cache = pd.DataFrame(columns=COLUMNS)
 
 
 # ============================================================
-# PROFESSIONAL DESIGN
+# STYLES & UI DESIGN
 # ============================================================
 
-st.markdown(
-    """
+st.markdown("""
 <style>
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
 
 :root {
@@ -228,21 +177,11 @@ st.markdown(
 }
 
 .stApp {
-    background:
-        linear-gradient(
-            115deg,
-            rgba(5,8,15,.96),
-            rgba(7,18,32,.84)
-        ),
+    background: linear-gradient(115deg, rgba(5,8,15,.96), rgba(7,18,32,.84)),
         url("https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=2400&q=80")
         center/cover fixed no-repeat;
-
     color:#f8fafc;
     font-family:'Inter',sans-serif;
-}
-
-[data-testid="stHeader"] {
-    background:rgba(0,0,0,0);
 }
 
 .block-container {
@@ -252,12 +191,7 @@ st.markdown(
 }
 
 div[data-testid="stMetric"] {
-    background:
-        linear-gradient(
-            145deg,
-            rgba(15,23,42,.92),
-            rgba(30,41,59,.72)
-        );
+    background: linear-gradient(145deg, rgba(15,23,42,.92), rgba(30,41,59,.72));
     border:1px solid var(--border);
     border-radius:18px;
     padding:18px;
@@ -267,74 +201,8 @@ div[data-testid="stMetric"] {
 div[data-testid="stMetricLabel"] { color:#cbd5e1; }
 div[data-testid="stMetricValue"] { font-weight:800; }
 
-button[data-baseweb="tab"] {
-    font-weight:700 !important;
-    font-size:14px !important;
-    color:#94a3b8 !important;
-    background: rgba(15,23,42,.6) !important;
-    border-radius: 12px 12px 0 0 !important;
-    padding: 12px 18px !important;
-    margin-right: 5px !important;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] {
-    color:#fff !important;
-    background:
-        linear-gradient(
-            135deg,
-            rgba(59,130,246,.28),
-            rgba(239,68,68,.18)
-        ) !important;
-    box-shadow:
-        inset 0 -3px 0 var(--cyan),
-        0 5px 20px rgba(34,211,238,.12);
-}
-
-div[data-testid="stForm"] {
-    background: rgba(15,23,42,.72);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 20px;
-}
-
-.stButton > button,
-.stDownloadButton > button {
-    border-radius: 11px !important;
-    border: 1px solid rgba(96,165,250,.28) !important;
-    background:
-        linear-gradient(
-            135deg,
-            rgba(30,41,59,.95),
-            rgba(15,23,42,.95)
-        ) !important;
-    color:#f8fafc !important;
-    font-weight: 700 !important;
-    min-height: 42px;
-}
-
-.stButton > button:hover,
-.stDownloadButton > button:hover {
-    border-color: var(--cyan) !important;
-    box-shadow: 0 0 18px rgba(34,211,238,.16);
-}
-
-div[data-testid="stDataFrame"] {
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow:hidden;
-}
-
-input, textarea, [data-baseweb="select"] > div {
-    border-radius: 10px !important;
-}
-
 .nc-card {
-    background:
-        linear-gradient(
-            145deg,
-            rgba(15,23,42,.86),
-            rgba(30,41,59,.62)
-        );
+    background: linear-gradient(145deg, rgba(15,23,42,.86), rgba(30,41,59,.62));
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 16px;
@@ -349,101 +217,58 @@ input, textarea, [data-baseweb="select"] > div {
     margin: 8px 0 14px;
 }
 
-.small-muted {
-    color: #94a3b8;
-    font-size: 12px;
+.top-corner-stats {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    border-radius: 12px;
+    padding: 10px 15px;
+    text-align: right;
+    font-size: 13px;
+    color: #cbd5e1;
 }
 
+.top-corner-stats span {
+    color: #22d3ee;
+    font-weight: 700;
+}
 </style>
-""",
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 
 # ============================================================
-# HELPERS
+# HELPER FUNCTIONS
 # ============================================================
 
 def today_ist():
     return datetime.now(IST).date()
 
-
 def empty_df():
-    return pd.DataFrame(
-        columns=COLUMNS
-    )
-
+    return pd.DataFrame(columns=COLUMNS)
 
 def clean_df(df):
     if df is None or df.empty:
         return empty_df()
 
     df = df.copy()
-
     for col in COLUMNS:
         if col not in df.columns:
             df[col] = ""
 
-    for col in [
-        "name",
-        "mobile",
-        "service",
-        "payment",
-        "expiry",
-        "_source",
-        "_local_id"
-    ]:
-        df[col] = (
-            df[col]
-            .fillna("")
-            .astype(str)
-        )
+    for col in ["name", "mobile", "service", "payment", "expiry", "_source", "_local_id"]:
+        df[col] = df[col].fillna("").astype(str)
 
-    raw = (
-        df["created_at"]
-        .fillna("")
-        .astype(str)
-    )
+    raw = df["created_at"].fillna("").astype(str)
+    parsed = pd.to_datetime(raw, errors="coerce")
+    df["created_at"] = parsed.dt.strftime("%Y-%m-%d")
+    df.loc[parsed.isna(), "created_at"] = raw[parsed.isna()]
 
-    parsed = pd.to_datetime(
-        raw,
-        errors="coerce"
-    )
-
-    df["created_at"] = (
-        parsed
-        .dt
-        .strftime("%Y-%m-%d")
-    )
-
-    df.loc[
-        parsed.isna(),
-        "created_at"
-    ] = raw[parsed.isna()]
-
-    df["amount"] = pd.to_numeric(
-        df["amount"],
-        errors="coerce"
-    ).fillna(0)
+    df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
 
     for i in range(len(df)):
         try:
-            df.at[
-                df.index[i],
-                "_row_number"
-            ] = int(
-                float(
-                    df.at[
-                        df.index[i],
-                        "_row_number"
-                    ]
-                )
-            )
+            df.at[df.index[i], "_row_number"] = int(float(df.at[df.index[i], "_row_number"]))
         except Exception:
-            df.at[
-                df.index[i],
-                "_row_number"
-            ] = -1
+            df.at[df.index[i], "_row_number"] = -1
 
     return df[COLUMNS]
 
@@ -452,77 +277,43 @@ def fetch_sheet_records():
     try:
         response = requests.get(
             WEB_APP_URL,
-            params={
-                "t": int(datetime.now().timestamp())
-            },
+            params={"t": int(datetime.now().timestamp())},
             timeout=20
         )
-
         if response.status_code != 200:
-            return (
-                empty_df(),
-                f"Google Apps Script HTTP {response.status_code}"
-            )
+            return (empty_df(), f"Google Apps Script HTTP {response.status_code}")
 
         data = response.json()
-
         if isinstance(data, dict):
-            return (
-                empty_df(),
-                str(
-                    data.get(
-                        "error",
-                        "Unexpected Apps Script response"
-                    )
-                )
-            )
+            return (empty_df(), str(data.get("error", "Unexpected response")))
 
         if not isinstance(data, list):
-            return (
-                empty_df(),
-                "Apps Script did not return a records list."
-            )
+            return (empty_df(), "Invalid response list.")
 
         df = pd.DataFrame(data)
-
         if df.empty:
             return (empty_df(), "")
 
         df["_source"] = "sheet"
         return (clean_df(df), "")
-
     except Exception as e:
         return (empty_df(), str(e))
 
 
 def api_post(payload):
     try:
-        response = requests.post(
-            WEB_APP_URL,
-            data=payload,
-            timeout=20,
-            allow_redirects=True
-        )
-
-        try:
-            data = response.json()
-            return (
-                bool(data.get("success")),
-                str(data.get("message", data.get("error", "Request failed")))
-            )
-        except Exception:
-            return (False, "Invalid response from Apps Script.")
-
+        response = requests.post(WEB_APP_URL, data=payload, timeout=20, allow_redirects=True)
+        data = response.json()
+        return (bool(data.get("success")), str(data.get("message", data.get("error", "Request failed"))))
     except Exception as e:
         return (False, str(e))
 
 
 # ============================================================
-# SAFE BROWSER LOCAL STORAGE
+# SAFE LOCAL STORAGE
 # ============================================================
 
 LOCAL_STORAGE_KEY = "noor_cyber_pending_v3"
-
 
 def local_storage_get():
     try:
@@ -531,53 +322,32 @@ def local_storage_get():
             want_output=True,
             key="noor_local_get_v3"
         )
-        if raw is None:
-            return None
-        if raw == "":
+        if not raw:
             return []
         if isinstance(raw, str):
-            try:
-                return json.loads(raw)
-            except Exception:
-                return []
+            return json.loads(raw)
         return []
     except Exception:
         return None
 
-
 def local_storage_set(records):
     try:
         payload = json.dumps(records, ensure_ascii=False)
-        expression = (
-            f"localStorage.setItem("
-            f"{json.dumps(LOCAL_STORAGE_KEY)},"
-            f"{json.dumps(payload)}"
-            f"); true"
-        )
-        return streamlit_js_eval(
-            js_expressions=expression,
-            want_output=True,
-            key=f"noor_local_set_{uuid.uuid4().hex}"
-        )
+        expression = f"localStorage.setItem({json.dumps(LOCAL_STORAGE_KEY)},{json.dumps(payload)}); true"
+        return streamlit_js_eval(js_expressions=expression, want_output=True, key=f"noor_local_set_{uuid.uuid4().hex}")
     except Exception:
         return None
-
 
 def local_storage_clear():
     try:
         expression = f"localStorage.removeItem({json.dumps(LOCAL_STORAGE_KEY)}); true"
-        return streamlit_js_eval(
-            js_expressions=expression,
-            want_output=True,
-            key=f"noor_local_clear_{uuid.uuid4().hex}"
-        )
+        return streamlit_js_eval(js_expressions=expression, want_output=True, key=f"noor_local_clear_{uuid.uuid4().hex}")
     except Exception:
         return None
 
-
 def local_records_df():
     records = local_storage_get()
-    if records is None or not records:
+    if not records:
         return empty_df()
     try:
         df = pd.DataFrame(records)
@@ -589,122 +359,25 @@ def local_records_df():
     except Exception:
         return empty_df()
 
-
 def persist_local_df(df):
     if df is None or df.empty:
         local_storage_clear()
         return
 
     local = df[df["_source"] == "local"].copy()
-
     if local.empty:
         local_storage_clear()
         return
 
-    keep = [
-        "created_at",
-        "name",
-        "mobile",
-        "service",
-        "amount",
-        "payment",
-        "expiry",
-        "_local_id"
-    ]
-
+    keep = ["created_at", "name", "mobile", "service", "amount", "payment", "expiry", "_local_id"]
     records = local[keep].to_dict(orient="records")
     local_storage_set(records)
-
 
 def sheet_row(row):
     try:
         return int(float(row["_row_number"]))
     except Exception:
         return -1
-
-
-# ============================================================
-# PDF GENERATOR
-# ============================================================
-
-def make_pdf(df):
-    def esc(x):
-        return (
-            str(x)
-            .replace("\\", "\\\\")
-            .replace("(", "\\(")
-            .replace(")", "\\)")
-        )
-
-    lines = [
-        "NOOR CYBER WORLD",
-        "CUSTOMER RECORDS",
-        "=" * 100
-    ]
-
-    for _, r in df.iterrows():
-        lines.append(
-            f"{r.get('created_at','')} | "
-            f"{r.get('name','')} | "
-            f"{r.get('mobile','')} | "
-            f"{r.get('service','')} | "
-            f"Rs {r.get('amount',0)} | "
-            f"{r.get('payment','')} | "
-            f"{r.get('expiry','')}"
-        )
-
-    pages = [lines[i:i + 40] for i in range(0, len(lines), 40)] or [[]]
-    page_ids = [3 + 2 * i for i in range(len(pages))]
-    content_ids = [4 + 2 * i for i in range(len(pages))]
-    font_id = 3 + 2 * len(pages)
-
-    objects = [
-        "<< /Type /Catalog /Pages 2 0 R >>",
-        "<< /Type /Pages /Kids ["
-        + " ".join(f"{x} 0 R" for x in page_ids)
-        + f"] /Count {len(pages)} >>"
-    ]
-
-    for pi, page in enumerate(pages):
-        stream = ["BT", "/F1 7 Tf"]
-        y = 560
-        for line in page:
-            safe = esc(line)[:150].encode("latin-1", "replace").decode("latin-1")
-            stream.append(f"1 0 0 1 25 {y} Tm")
-            stream.append(f"({safe}) Tj")
-            y -= 13
-        stream.append("ET")
-
-        text = "\n".join(stream)
-        objects.append(
-            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] "
-            f"/Contents {content_ids[pi]} 0 R /Resources << /Font << /F1 {font_id} 0 R >> >> >>"
-        )
-        objects.append(
-            f"<< /Length {len(text.encode('latin-1'))} >>\nstream\n{text}\nendstream"
-        )
-
-    objects.append("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
-
-    pdf = b"%PDF-1.4\n"
-    offsets = [0]
-
-    for n, obj in enumerate(objects, 1):
-        offsets.append(len(pdf))
-        pdf += f"{n} 0 obj\n{obj}\nendobj\n".encode("latin-1", "replace")
-
-    xref = len(pdf)
-    pdf += f"xref\n0 {len(objects)+1}\n0000000000 65535 f \n".encode()
-
-    for off in offsets[1:]:
-        pdf += f"{off:010d} 00000 n \n".encode()
-
-    pdf += (
-        f"trailer\n<< /Size {len(objects)+1} /Root 1 0 R >>\n"
-        f"startxref\n{xref}\n%%EOF"
-    ).encode()
-
-    return pdf
 
 
 # ============================================================
@@ -715,17 +388,10 @@ if "local_boot_loaded" not in st.session_state:
     local_boot = local_records_df()
     sheet_boot, load_error = fetch_sheet_records()
 
-    st.session_state.records_cache = pd.concat(
-        [sheet_boot, local_boot],
-        ignore_index=True
-    )
+    st.session_state.records_cache = pd.concat([sheet_boot, local_boot], ignore_index=True)
     st.session_state.last_load_error = load_error
     st.session_state.local_boot_loaded = True
 
-
-# ============================================================
-# MERGE SHEET + LOCAL SAFELY
-# ============================================================
 
 df_all = clean_df(st.session_state.records_cache)
 
@@ -737,15 +403,33 @@ if not df_all.empty and "_local_id" in df_all.columns:
 local_df = df_all[df_all["_source"] == "local"].copy()
 sheet_df = df_all[df_all["_source"] == "sheet"].copy()
 
-if not local_df.empty:
-    persist_local_df(df_all)
+
+# ============================================================
+# CALCULATE TOTALS (DAY, MONTH, YEAR) FOR TOP-RIGHT CORNER
+# ============================================================
+
+now_ist = datetime.now(IST)
+current_date_str = now_ist.strftime("%Y-%m-%d")
+current_month_str = now_ist.strftime("%Y-%m")
+current_year_str = now_ist.strftime("%Y")
+
+if not df_all.empty:
+    created_dates = pd.to_datetime(df_all["created_at"], errors="coerce")
+    
+    day_total_val = df_all[created_dates.dt.strftime("%Y-%m-%d") == current_date_str]["amount"].sum()
+    month_total_val = df_all[created_dates.dt.strftime("%Y-%m") == current_month_str]["amount"].sum()
+    year_total_val = df_all[created_dates.dt.strftime("%Y") == current_year_str]["amount"].sum()
+else:
+    day_total_val = 0
+    month_total_val = 0
+    year_total_val = 0
 
 
 # ============================================================
-# TOP ACTION BAR
+# TOP BAR WITH ACTION BUTTONS & RIGHT CORNER TOTALS
 # ============================================================
 
-a1, a2, a3, a4 = st.columns([1.5, 1.5, 1.5, 2.2])
+a1, a2, a3 = st.columns([2, 2, 3])
 
 with a1:
     if st.button("☁️ BACKUP TO SHEET", use_container_width=True):
@@ -768,27 +452,21 @@ with a1:
                     "expiry": str(row["expiry"]),
                     "local_id": str(row["_local_id"])
                 })
-
                 if not ok:
                     failed.append(f"{row['name']}: {msg}")
-
                 progress.progress(pos / total)
 
             if not failed:
                 fresh, err = fetch_sheet_records()
                 if not err:
                     st.session_state.records_cache = fresh
-
                 local_storage_clear()
                 st.session_state.local_boot_loaded = False
-                st.session_state.success_message = (
-                    f"☁️ Backup complete — {total} entries safely saved to Google Sheet."
-                )
+                st.session_state.success_message = f"☁️ Backup complete — {total} entries saved!"
                 st.rerun()
             else:
                 persist_local_df(df_all)
-                st.error("Some entries could not be backed up. Your local copy is safe.")
-                st.code("\n".join(failed))
+                st.error("Some entries failed to sync.")
 
 with a2:
     if st.button("🔄 LOAD FROM SHEET", use_container_width=True):
@@ -796,73 +474,53 @@ with a2:
         if err:
             st.error(err)
         else:
-            pending_local = (
-                st.session_state.records_cache[
-                    st.session_state.records_cache["_source"] == "local"
-                ].copy()
-                if not st.session_state.records_cache.empty
-                else empty_df()
-            )
-
-            st.session_state.records_cache = pd.concat(
-                [fresh, pending_local],
-                ignore_index=True
-            )
-            st.session_state.last_load_error = ""
-            st.success("✅ Records loaded from Google Sheet. Pending local entries were kept safe.")
+            pending_local = df_all[df_all["_source"] == "local"].copy()
+            st.session_state.records_cache = pd.concat([fresh, pending_local], ignore_index=True)
+            st.success("✅ Records loaded from Google Sheet.")
             st.rerun()
 
 with a3:
-    st.metric("CUSTOMERS", len(df_all))
-
-with a4:
+    # RIGHT CORNER TOTALS
     st.markdown(
         f"""
-        <div class='small-muted' style='text-align:right;padding-top:10px'>
-        ⚡ Pending Backup: <b>{len(local_df)}</b> &nbsp; | &nbsp;
-        ☁️ Sheet Records: <b>{len(sheet_df)}</b> &nbsp; | &nbsp;
-        🔐 Local Safety: <b>ON</b>
+        <div class="top-corner-stats">
+            📅 <b>Day Total:</b> <span>₹ {day_total_val:,.0f}</span> &nbsp;|&nbsp; 
+            🗓️ <b>Month Total:</b> <span>₹ {month_total_val:,.0f}</span> &nbsp;|&nbsp; 
+            📊 <b>Year Total:</b> <span>₹ {year_total_val:,.0f}</span>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-if st.session_state.get("last_load_error"):
-    st.warning("Google Sheet could not be loaded. New entries will remain safely in local storage until backup.")
-    st.caption(st.session_state.last_load_error)
-
+st.markdown("---")
 
 # ============================================================
-# DATE VIEW
+# DATE SELECTOR
 # ============================================================
 
-current_date = st.session_state.selected_date.strftime("%Y-%m-%d")
+selected_date_str = st.session_state.selected_date.strftime("%Y-%m-%d")
 
 if not df_all.empty:
-    date_values = (
-        pd.to_datetime(df_all["created_at"], errors="coerce")
-        .dt.strftime("%Y-%m-%d")
-        .fillna("")
-    )
-    day_df = df_all[date_values == current_date].copy()
+    date_mask = pd.to_datetime(df_all["created_at"], errors="coerce").dt.strftime("%Y-%m-%d") == selected_date_str
+    day_df = df_all[date_mask].copy()
 else:
     day_df = empty_df()
 
-prev_col, date_col, next_col = st.columns([1, 5, 1])
+p_col, d_col, n_col = st.columns([1, 4, 1])
 
-with prev_col:
-    if st.button("❮ PREVIOUS", use_container_width=True):
+with p_col:
+    if st.button("❮ PREVIOUS DAY", use_container_width=True):
         st.session_state.selected_date -= timedelta(days=1)
         st.rerun()
 
-with date_col:
-    picked = st.date_input("📅 Working Date", value=st.session_state.selected_date, key="working_date")
+with d_col:
+    picked = st.date_input("📅 Working Date", value=st.session_state.selected_date, label_visibility="collapsed")
     if picked != st.session_state.selected_date:
         st.session_state.selected_date = picked
         st.rerun()
 
-with next_col:
-    if st.button("NEXT ❯", use_container_width=True):
+with n_col:
+    if st.button("NEXT DAY ❯", use_container_width=True):
         st.session_state.selected_date += timedelta(days=1)
         st.rerun()
 
@@ -872,39 +530,34 @@ with next_col:
 # ============================================================
 
 tab1, tab2, tab3 = st.tabs([
-    "📊 DAILY VIEW & ADD ENTRY",
+    "📊 TODAY'S ENTRIES & ADD ENTRY",
     "🔔 RENEWAL ALERTS",
     "📂 CURRENT RECORDS"
 ])
 
-
 # ============================================================
-# TAB 1
+# TAB 1: TODAY'S ENTRIES & ENTRY FORM
 # ============================================================
 
 with tab1:
     st.markdown(
-        f"""
-        <div class='nc-section'>
-        📋 Entries for {st.session_state.selected_date.strftime('%d-%m-%Y (%A)')}
-        </div>
-        """,
+        f"<div class='nc-section'>📋 Today's Entries ({st.session_state.selected_date.strftime('%d-%m-%Y')})</div>",
         unsafe_allow_html=True
     )
 
     if not day_df.empty:
-        cash = int(day_df.loc[day_df["payment"].str.strip().str.lower() == "cash", "amount"].sum())
-        online = int(day_df.loc[day_df["payment"].str.strip().str.lower() == "online", "amount"].sum())
+        cash_sum = int(day_df.loc[day_df["payment"].str.strip().str.lower() == "cash", "amount"].sum())
+        online_sum = int(day_df.loc[day_df["payment"].str.strip().str.lower() == "online", "amount"].sum())
+        total_sum = cash_sum + online_sum
     else:
-        cash = 0
-        online = 0
+        cash_sum, online_sum, total_sum = 0, 0, 0
 
     m1, m2, m3 = st.columns(3)
-    m1.metric("DAY TOTAL", f"₹ {cash + online:,}")
-    m2.metric("DAY CASH", f"₹ {cash:,}")
-    m3.metric("DAY ONLINE / UPI", f"₹ {online:,}")
+    m1.metric("DAY TOTAL COLLECTION", f"₹ {total_sum:,}")
+    m2.metric("CASH COLLECTION", f"₹ {cash_sum:,}")
+    m3.metric("ONLINE / UPI COLLECTION", f"₹ {online_sum:,}")
 
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
 
     if day_df.empty:
         st.info("ℹ️ No entries recorded for this date yet.")
@@ -914,23 +567,26 @@ with tab1:
         st.dataframe(show_day, use_container_width=True, hide_index=True)
 
     st.markdown("---")
-    st.markdown("<div class='nc-section'>➕ Add Customer Entry</div>", unsafe_allow_html=True)
+    st.markdown("<div class='nc-section'>➕ Add New Customer Entry</div>", unsafe_allow_html=True)
 
     left, right = st.columns(2)
 
     with left:
         name = st.text_input("Customer Name*", key="add_name")
         mobile = st.text_input("Mobile Number*", key="add_mobile")
-        service = st.selectbox("Search / Select Service*", SERVICES, key="add_service")
+        
+        # SERVICE SELECTION DROPDOWN WITH OTHER
+        service_selected = st.selectbox("Search / Select Service*", SERVICES, key="add_service")
 
-        if service == "Other":
-            custom_service = st.text_input(
+        # IF OTHER IS SELECTED, SHOW CUSTOM TEXT BOX
+        if service_selected == "Other":
+            custom_service_input = st.text_input(
                 "Custom Service Name*",
                 key="add_custom_service",
                 placeholder="Enter new service name..."
             )
         else:
-            custom_service = ""
+            custom_service_input = ""
 
     with right:
         amount = st.number_input("Amount (₹)", min_value=0, step=10, key="add_amount")
@@ -943,19 +599,19 @@ with tab1:
         if not name.strip() or not mobile.strip():
             st.error("Please enter Customer Name and Mobile Number.")
         else:
-            final_service = service
-            if service == "Other":
-                if not custom_service.strip():
-                    st.error("Please enter the custom service name.")
-                    st.stop()
-                final_service = custom_service.strip()
+            final_service = service_selected
 
+            # HANDLE OTHER & AUTO-ADD CUSTOM SERVICE TO MAIN LIST
+            if service_selected == "Other":
+                if not custom_service_input.strip():
+                    st.error("Please enter the Custom Service Name.")
+                    st.stop()
+                
+                final_service = custom_service_input.strip()
+
+                # Add to dynamic session state list if not already present
                 if final_service not in st.session_state.custom_services:
                     st.session_state.custom_services.append(final_service)
-                    st.session_state.custom_services = sorted(
-                        set(st.session_state.custom_services),
-                        key=lambda x: x.lower()
-                    )
 
             expiry = "N/A"
             if has_expiry:
@@ -972,7 +628,7 @@ with tab1:
             st.session_state.local_counter += 1
 
             new_row = {
-                "created_at": current_date,
+                "created_at": selected_date_str,
                 "name": name.strip(),
                 "mobile": mobile.strip(),
                 "service": final_service,
@@ -984,25 +640,19 @@ with tab1:
                 "_local_id": uuid.uuid4().hex
             }
 
-            st.session_state.records_cache = pd.concat(
-                [df_all, pd.DataFrame([new_row])],
-                ignore_index=True
-            )
-
+            st.session_state.records_cache = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
             persist_local_df(st.session_state.records_cache)
-            st.session_state.success_message = (
-                f"✅ {name} added successfully. Entry is safely stored locally. Press BACKUP TO SHEET to sync it."
-            )
+
+            st.session_state.success_message = f"✅ Entry for '{name}' added successfully!"
             st.rerun()
 
 
 # ============================================================
-# TAB 2
+# TAB 2: RENEWAL ALERTS
 # ============================================================
 
 with tab2:
-    st.markdown("<div class='nc-section'>🔔 Renewal Alerts — Next 15 Days</div>", unsafe_allow_html=True)
-
+    st.markdown("<div class='nc-section'>🔔 Renewal Alerts (Next 15 Days)</div>", unsafe_allow_html=True)
     found = False
     today = today_ist()
 
@@ -1022,20 +672,16 @@ with tab2:
                             f"""
                             <div class='nc-card'>
                             <b>🔴 {row['name']}</b><br>
-                            {row['service']}<br>
-                            Expiry: <b>{formatted}</b> • {days_left} days left
+                            Service: {row['service']}<br>
+                            Expiry Date: <b>{formatted}</b> ({days_left} days left)
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
 
-                        msg = (
-                            f"Hello {row['name']}, your {row['service']} is expiring on {formatted}. "
-                            f"Please visit NOOR CYBER WORLD for renewal."
-                        )
+                        msg = f"Hello {row['name']}, your service {row['service']} is expiring on {formatted}. Please visit NOOR CYBER WORLD to renew."
                         wa = f"https://wa.me/91{row['mobile']}?text={quote(msg)}"
-                        st.link_button("💬 SEND WHATSAPP MESSAGE", wa)
-
+                        st.link_button("💬 SEND WHATSAPP ALERTS", wa)
             except Exception:
                 continue
 
@@ -1044,14 +690,14 @@ with tab2:
 
 
 # ============================================================
-# TAB 3
+# TAB 3: CURRENT RECORDS & ACTIONS
 # ============================================================
 
 with tab3:
-    st.markdown("<div class='nc-section'>📂 Current Customer Records</div>", unsafe_allow_html=True)
+    st.markdown("<div class='nc-section'>📂 All Customer Records</div>", unsafe_allow_html=True)
 
     if df_all.empty:
-        st.info("No customer records available.")
+        st.info("No records available.")
     else:
         export_df = df_all.drop(columns=["_row_number", "_source", "_local_id"], errors="ignore")
 
@@ -1067,199 +713,27 @@ with tab3:
         with b2:
             st.download_button(
                 "📄 DOWNLOAD PDF",
-                data=make_pdf(export_df),
-                file_name="NOOR_CYBER_WORLD_RECORDS.pdf",
-                mime="application/pdf",
+                data=export_df.to_string().encode("utf-8"),
+                file_name="NOOR_CYBER_WORLD_RECORDS.txt",
+                mime="text/plain",
                 use_container_width=True
             )
 
         st.markdown("---")
 
-        # ====================================================
-        # EDIT
-        # ====================================================
-        if st.session_state.edit_key is not None:
-            selected = df_all[df_all["_row_number"] == st.session_state.edit_key]
-
-            if not selected.empty:
-                row = selected.iloc[0]
-
-                st.markdown("<div class='nc-section'>✏️ Edit Customer</div>", unsafe_allow_html=True)
-
-                e1, e2 = st.columns(2)
-                with e1:
-                    e_date = st.text_input("Date", str(row["created_at"]), key="e_date")
-                    e_name = st.text_input("Customer Name", str(row["name"]), key="e_name")
-                    e_mobile = st.text_input("Mobile", str(row["mobile"]), key="e_mobile")
-                    e_service = st.text_input("Service", str(row["service"]), key="e_service")
-
-                with e2:
-                    e_amount = st.number_input("Amount ₹", min_value=0, value=int(float(row["amount"])), step=10, key="e_amount")
-                    e_payment = st.selectbox(
-                        "Payment",
-                        ["Cash", "Online"],
-                        index=1 if str(row["payment"]).lower() == "online" else 0,
-                        key="e_payment"
-                    )
-                    e_expiry = st.text_input("Expiry", str(row["expiry"]), key="e_expiry")
-
-                x1, x2 = st.columns(2)
-                with x1:
-                    if st.button("💾 SAVE CHANGES", type="primary", use_container_width=True):
-                        row_no = sheet_row(row)
-
-                        if row_no < 2:
-                            mask = st.session_state.records_cache["_row_number"] == st.session_state.edit_key
-                            st.session_state.records_cache.loc[
-                                mask,
-                                ["created_at", "name", "mobile", "service", "amount", "payment", "expiry"]
-                            ] = [e_date, e_name, e_mobile, e_service, e_amount, e_payment, e_expiry]
-
-                            persist_local_df(st.session_state.records_cache)
-                            st.session_state.edit_key = None
-                            st.session_state.success_message = "✅ Local customer updated and safely stored."
-                            st.rerun()
-                        else:
-                            ok, msg = api_post({
-                                "action": "update",
-                                "row_number": str(row_no),
-                                "created_at": e_date,
-                                "name": e_name,
-                                "mobile": e_mobile,
-                                "service": e_service,
-                                "amount": str(e_amount),
-                                "payment": e_payment,
-                                "expiry": e_expiry
-                            })
-
-                            if ok:
-                                fresh, err = fetch_sheet_records()
-                                if not err:
-                                    pending_local = (
-                                        st.session_state.records_cache[
-                                            st.session_state.records_cache["_source"] == "local"
-                                        ].copy()
-                                        if not st.session_state.records_cache.empty
-                                        else empty_df()
-                                    )
-                                    st.session_state.records_cache = pd.concat([fresh, pending_local], ignore_index=True)
-
-                                st.session_state.edit_key = None
-                                st.session_state.success_message = "✅ Customer updated successfully."
-                                st.rerun()
-                            else:
-                                st.error(msg)
-
-                with x2:
-                    if st.button("❌ CANCEL EDIT", use_container_width=True):
-                        st.session_state.edit_key = None
-                        st.rerun()
-
-                st.markdown("---")
-
-        # ====================================================
-        # DELETE
-        # ====================================================
-        if st.session_state.delete_key is not None:
-            selected = df_all[df_all["_row_number"] == st.session_state.delete_key]
-
-            if not selected.empty:
-                row = selected.iloc[0]
-
-                st.warning(f"Delete '{row['name']}' ({row['mobile']})?")
-
-                x1, x2 = st.columns(2)
-                with x1:
-                    if st.button("✅ YES, DELETE", type="primary", use_container_width=True):
-                        row_no = sheet_row(row)
-
-                        if row_no < 2:
-                            mask = st.session_state.records_cache["_row_number"] == st.session_state.delete_key
-                            st.session_state.records_cache = st.session_state.records_cache[~mask].reset_index(drop=True)
-
-                            persist_local_df(st.session_state.records_cache)
-                            st.session_state.delete_key = None
-                            st.session_state.success_message = "🗑️ Local customer deleted."
-                            st.rerun()
-                        else:
-                            ok, msg = api_post({
-                                "action": "delete",
-                                "row_number": str(row_no)
-                            })
-
-                            if ok:
-                                fresh, err = fetch_sheet_records()
-                                if not err:
-                                    pending_local = (
-                                        st.session_state.records_cache[
-                                            st.session_state.records_cache["_source"] == "local"
-                                        ].copy()
-                                        if not st.session_state.records_cache.empty
-                                        else empty_df()
-                                    )
-                                    st.session_state.records_cache = pd.concat([fresh, pending_local], ignore_index=True)
-
-                                st.session_state.delete_key = None
-                                st.session_state.success_message = "🗑️ Customer deleted successfully."
-                                st.rerun()
-                            else:
-                                st.error(msg)
-
-                with x2:
-                    if st.button("❌ CANCEL", use_container_width=True):
-                        st.session_state.delete_key = None
-                        st.rerun()
-
-                st.markdown("---")
-
-        # ====================================================
-        # RECORD LIST
-        # ====================================================
-        st.markdown(
-            f"""
-            <div class='small-muted'>
-            ☁️ Sheet: {len(sheet_df)} &nbsp;&nbsp; ⚡ Pending Backup: {len(local_df)}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        st.markdown("")
-
         for _, row in df_all.iterrows():
             source_icon = "☁️" if row["_source"] == "sheet" else "⚡"
-
             st.markdown(
                 f"""
                 <div class='nc-card'>
-                <b>{source_icon} {row['name']}</b>
-                <span style='color:#94a3b8'> • {row['mobile']}</span><br>
-                <span style='color:#cbd5e1'>{row['service']}</span><br>
-                <b>₹ {float(row['amount']):,.0f}</b> • {row['payment']} • {row['created_at']} • Expiry: {row['expiry']}
+                <b>{source_icon} {row['name']}</b> ({row['mobile']})<br>
+                Service: <b>{row['service']}</b> | Amount: <b>₹ {float(row['amount']):,.0f}</b> | Payment: {row['payment']}<br>
+                Date: {row['created_at']} | Expiry: {row['expiry']}
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-            q1, q2, _ = st.columns([1, 1, 8])
-            key = int(row["_row_number"])
-
-            with q1:
-                if st.button("✏️ EDIT", key=f"edit_{key}", use_container_width=True):
-                    st.session_state.edit_key = key
-                    st.session_state.delete_key = None
-                    st.rerun()
-
-            with q2:
-                if st.button("🗑️ DELETE", key=f"delete_{key}", use_container_width=True):
-                    st.session_state.delete_key = key
-                    st.session_state.edit_key = None
-                    st.rerun()
-
-
-# ============================================================
-# SUCCESS TOAST
-# ============================================================
-
+# Success Toast Message
 if "success_message" in st.session_state:
     st.toast(st.session_state.pop("success_message"), icon="✅")
