@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 # Page Config
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
 
-# 👇 यहाँ अपनी Base64 कोड स्ट्रिंग रहने दें
+# 👇 यहाँ अपनी Base64 कोड स्ट्रिंग पेस्ट करें
 LOGO_BASE64 = "PASTE_YOUR_BASE64_STRING_HERE"
 
 # CUSTOM CSS FOR STYLING
@@ -96,14 +96,14 @@ with col_title:
 
 st.markdown("---")
 
-# Initialize SQLite Database
+# Initialize SQLite Database & Auto-Migrate
 def init_db():
     conn = sqlite3.connect("noor_cyber_data.db")
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            created_at TEXT NOT NULL,
+            created_at TEXT DEFAULT '',
             name TEXT NOT NULL,
             mobile TEXT NOT NULL,
             service TEXT NOT NULL,
@@ -112,6 +112,15 @@ def init_db():
             expiry TEXT
         )
     ''')
+    
+    # Check if created_at column exists in old DB
+    c.execute("PRAGMA table_info(records)")
+    columns = [col[1] for col in c.fetchall()]
+    if "created_at" not in columns:
+        c.execute("ALTER TABLE records ADD COLUMN created_at TEXT DEFAULT ''")
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        c.execute("UPDATE records SET created_at = ? WHERE created_at = '' OR created_at IS NULL", (today_str,))
+        
     conn.commit()
     conn.close()
 
@@ -130,6 +139,10 @@ def get_records():
     conn = sqlite3.connect("noor_cyber_data.db")
     df = pd.read_sql_query("SELECT id, created_at as Date, name as Name, mobile as Mobile, service as Service, amount as Amount, payment as Payment, expiry as Expiry FROM records", conn)
     conn.close()
+    
+    # Fill empty dates with today's date if any
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    df["Date"] = df["Date"].replace(["", None], today_str)
     return df
 
 def delete_record(record_id):
@@ -308,7 +321,7 @@ with tab3:
     if not alerts_found:
         st.info("🎉 No renewals due in the next 15 days.")
 
-# TAB 4: HISTORY & EDIT/DELETE (Date Filter Added)
+# TAB 4: HISTORY & EDIT/DELETE
 with tab4:
     st.subheader("📂 History & Manage Entries (Search / Edit / Delete)")
     df = get_records()
@@ -316,7 +329,6 @@ with tab4:
     if df.empty:
         st.info("No records available in database.")
     else:
-        # Date Filter Controls
         col_f1, col_f2 = st.columns([1, 2])
         with col_f1:
             filter_type = st.radio("Filter By Date:", ["Single Date", "Date Range", "All Records"])
@@ -337,7 +349,6 @@ with tab4:
                 
                 filtered_df = df[(df["Date"] >= start_d.strftime("%Y-%m-%d")) & (df["Date"] <= end_d.strftime("%Y-%m-%d"))]
 
-        # Collection Summary for Selected Date / Filter
         st.markdown("---")
         if not filtered_df.empty:
             f_cash = int(filtered_df[filtered_df["Payment"] == "Cash"]["Amount"].sum())
