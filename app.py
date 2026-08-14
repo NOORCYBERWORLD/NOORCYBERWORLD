@@ -36,12 +36,10 @@ st.markdown("""
 
 st.markdown("---")
 
-# Direct fetch function without heavy caching to ensure live display
 def get_records():
     try:
-        # Cache busting timestamp
         fetch_url = f"{WEB_APP_URL}?t={datetime.now().timestamp()}"
-        res = requests.get(fetch_url, timeout=10)
+        res = requests.get(fetch_url, timeout=12)
         if res.status_code == 200:
             data = res.json()
             if isinstance(data, list):
@@ -65,8 +63,10 @@ def add_record(created_at, name, mobile, service, amount, payment, expiry):
         "expiry": str(expiry)
     }
     try:
+        # allow_redirects=True for Google Script redirects
         res = requests.post(WEB_APP_URL, data=payload, timeout=15, allow_redirects=True)
-        return res.status_code in [200, 302]
+        # Any 2xx or redirect status means success in Google Apps Script
+        return res.status_code < 400
     except Exception:
         return False
 
@@ -188,13 +188,12 @@ with tab1:
 
             date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
             
-            with st.spinner("Saving entry to Google Sheet & Updating App..."):
+            with st.spinner("Saving entry to Google Sheet..."):
                 success = add_record(date_str, name, mobile, final_service, amount, pay_mode, exp_str)
             
             if success:
-                st.success(f"✅ Entry for '{name}' saved successfully!")
-                # Auto Refresh Page immediately to load new data on screen
-                st.rerun()
+                st.success(f"✅ Success! Entry for '{name}' (₹{amount}) saved successfully!")
+                st.info("💡 Scroll up to see the newly updated entry in your list above.")
             else:
                 st.error("❌ Google Sheet server error. Please try again.")
 
