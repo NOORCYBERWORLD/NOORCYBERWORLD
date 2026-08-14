@@ -25,9 +25,7 @@ st.set_page_config(
 # ============================================================
 
 WEB_APP_URL = (
-    "https://script.google.com/macros/s/"
-    "AKfycbzpDRn2srFz_HrHgjUs-EpAn3HzUA-gv9Rb5P-apR5uC83JOPYSDjggE8NKl2MC9S3f"
-    "/exec"
+    "https://script.google.com/macros/s/AKfycbzpDRn2srFz_HrHgjUs-EpAn3HzUA-gv9Rb5P-apR5uC83JOPYSDjggE8NKl2MC9S3f/exec"
 )
 
 
