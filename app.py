@@ -1,13 +1,14 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-import os
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from PIL import Image
 
 # Page Config
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
+
+# DIRECT ONLINE LOGO URL (No local file error)
+LOGO_URL = "https://i.ibb.co/6y4g8qK/107527.png"
 
 # CUSTOM CSS FOR STYLING
 st.markdown("""
@@ -76,30 +77,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Safe Logo Loader Function
-def load_logo_safely():
-    possible_names = ["logo.png", "logo.jpg", "logo.jpeg", "LOGO.PNG", "LOGO.JPG", "LOGO.JPEG"]
-    for file in possible_names:
-        if os.path.exists(file):
-            try:
-                img = Image.open(file)
-                img.verify() # Check if image is valid
-                img = Image.open(file) # Reopen after verify
-                return img
-            except Exception:
-                continue
-    return None
-
-logo_img = load_logo_safely()
-
 # App Header Layout
 col_logo, col_title = st.columns([1, 4])
 
 with col_logo:
-    if logo_img:
-        st.image(logo_img, width=130)
-    else:
-        st.write("🖥️")
+    st.image(LOGO_URL, width=130)
 
 with col_title:
     st.markdown("""
