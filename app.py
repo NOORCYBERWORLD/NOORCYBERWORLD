@@ -421,26 +421,7 @@ div[data-testid="stForm"] {
 # HEADER
 # ============================================================
 
-st.markdown(
-    """
-<div class="nc-header">
 
-    <div class="nc-title">
-        NOOR CYBER WORLD
-    </div>
-
-    <div class="nc-sub">
-        DIGITAL SERVICE • CUSTOMER MANAGEMENT • SMART RECORD SYSTEM
-    </div>
-
-    <div class="nc-status">
-        ● SYSTEM ONLINE
-    </div>
-
-</div>
-""",
-    unsafe_allow_html=True
-)
 
 # ============================================================
 # PROFESSIONAL UI
