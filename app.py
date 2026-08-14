@@ -571,4 +571,262 @@ with tab1:
                     elif validity_unit == "Months":
                         expiry_date = base + relativedelta(months=int(validity_value))
                     else:
-               
+                        expiry_date = base + relativedelta(years=int(validity_value))
+                    expiry = expiry_date.strftime("%Y-%m-%d")
+
+                action_type = "edit" if is_editing else "add"
+                payload = {
+                    "action": action_type,
+                    "created_at": selected_date_str,
+                    "name": str(name_input).strip(),
+                    "mobile": str(mobile_input).strip(),
+                    "service": final_service,
+                    "amount": str(int(amount)),
+                    "net_amount": str(int(net_amount)),
+                    "payment": payment,
+                    "expiry": expiry,
+                    "row_number": edit_data.get("_row_number", 0)
+                }
+
+                with st.spinner("Saving to Google Sheet..."):
+                    ok, msg = api_post(payload)
+
+                if ok:
+                    st.session_state.editing_row = None
+                    fetch_sheet_records.clear()
+                    
+                    ty_msg = f"Dear {name_input.strip()}, Thank you for choosing NOOR CYBER WORLD for {final_service}! Total Amount: Rs.{amount}. We are happy to serve you."
+                    st.session_state.last_saved_wa = f"https://wa.me/91{mobile_input.strip()}?text={quote(ty_msg)}"
+                    st.session_state.success_message = "✅ Entry Saved Successfully!"
+                    st.rerun()
+                else:
+                    st.error(f"Failed to save: {msg}")
+
+    with b_col2:
+        if is_editing:
+            if st.button("❌ CANCEL EDIT", use_container_width=True):
+                st.session_state.editing_row = None
+                st.rerun()
+
+    if "last_saved_wa" in st.session_state:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.success("🎉 Entry successfully saved!")
+        st.link_button("💬 SEND THANK YOU SMS / WHATSAPP TO CUSTOMER", st.session_state.last_saved_wa, use_container_width=True)
+
+# ============================================================
+# TAB 2: UDHARI COLLECTION (WITH MARK PAID BUTTON)
+# ============================================================
+with tab2:
+    st.markdown("<div class='nc-section'>🔴 Pending Udhari / Credit Customer List</div>", unsafe_allow_html=True)
+
+    udhari_df = pd.DataFrame()
+    if not df_all.empty:
+        udhari_mask = df_all["payment"].str.strip().str.lower().str.contains("credit|udhari", na=False)
+        udhari_df = df_all[udhari_mask]
+
+    if udhari_df.empty:
+        st.success("🎉 No pending udhari! All payments are clear.")
+    else:
+        total_pending_amount = udhari_df["amount"].sum()
+        st.error(f"⚠️ Total Pending Udhari Across All Records: **₹ {total_pending_amount:,.0f}** ({len(udhari_df)} Customers)")
+        st.markdown("---")
+
+        for idx, row in udhari_df.iterrows():
+            col_info, col_act1, col_act2 = st.columns([5, 2, 1.5])
+            
+            with col_info:
+                st.markdown(
+                    f"""
+                    <div class='nc-card-red'>
+                    <b>🔴 {row['name']}</b> ({row['mobile']})<br>
+                    Service: <b>{row['service']}</b> | Pending: <b style='color:#ef4444; font-size:16px;'>₹ {float(row['amount']):,.0f}</b><br>
+                    Date: {row['created_at']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            
+            with col_act1:
+                udhari_msg = f"Hello {row['name']}, this is a gentle reminder from NOOR CYBER WORLD. Your payment of Rs.{int(row['amount'])} for {row['service']} is pending. Please clear your balance as soon as possible. Thank you!"
+                wa_udhari_url = f"https://wa.me/91{row['mobile']}?text={quote(udhari_msg)}"
+                st.link_button(f"💬 SMS Reminder", wa_udhari_url, use_container_width=True)
+            
+            with col_act2:
+                if st.button("✅ Mark Paid", key=f"mark_paid_{idx}", use_container_width=True):
+                    with st.spinner("Updating status to Cash..."):
+                        payload = {
+                            "action": "edit",
+                            "created_at": str(row["created_at"]),
+                            "name": str(row["name"]),
+                            "mobile": str(row["mobile"]),
+                            "service": str(row["service"]),
+                            "amount": str(int(row["amount"])),
+                            "net_amount": str(int(row["net_amount"])),
+                            "payment": "Cash",
+                            "expiry": str(row["expiry"]),
+                            "row_number": int(row["_row_number"])
+                        }
+                        ok, msg = api_post(payload)
+                        if ok:
+                            fetch_sheet_records.clear()
+                            st.session_state.success_message = f"Payment marked as CASH for {row['name']}!"
+                            st.rerun()
+                        else:
+                            st.error(f"Error: {msg}")
+
+# ============================================================
+# TAB 3: RENEWAL ALERTS
+# ============================================================
+with tab3:
+    st.markdown("<div class='nc-section'>🔔 Renewal Alerts (Next 15 Days)</div>", unsafe_allow_html=True)
+    
+    today = today_ist()
+    renewals_list = []
+
+    if not df_all.empty:
+        for _, row in df_all.iterrows():
+            try:
+                exp = str(row["expiry"]).strip()
+                if exp and exp != "N/A":
+                    exp_date = datetime.strptime(exp[:10], "%Y-%m-%d").date()
+                    days_left = (exp_date - today).days
+
+                    if 0 <= days_left <= 15:
+                        renewals_list.append((row, exp_date, days_left))
+            except Exception:
+                continue
+
+    if renewals_list:
+        st.markdown(
+            f"<div class='alert-badge'>⚠️ ALERT: {len(renewals_list)} Renewal(s) Pending in the Next 15 Days!</div>",
+            unsafe_allow_html=True
+        )
+
+        for row, exp_date, days_left in renewals_list:
+            formatted = exp_date.strftime("%d-%m-%Y")
+            st.markdown(
+                f"""
+                <div class='nc-card-red'>
+                <b>🔴 {row['name']}</b> ({row['mobile']})<br>
+                Service: <b>{row['service']}</b><br>
+                Expiry Date: <b>{formatted}</b> ({days_left} days remaining)
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            msg = f"Hello {row['name']}, your service {row['service']} is expiring on {formatted}. Please visit NOOR CYBER WORLD to renew it on time."
+            wa = f"https://wa.me/91{row['mobile']}?text={quote(msg)}"
+            st.link_button(f"💬 SEND RENEWAL SMS TO {row['name']}", wa)
+            st.markdown("<br>", unsafe_allow_html=True)
+    else:
+        st.success("🎉 No renewals due in the next 15 days.")
+
+# ============================================================
+# TAB 4: SHOP EXPENSES & NET PROFIT TRACKER
+# ============================================================
+with tab4:
+    st.markdown("<div class='nc-section'>💸 Shop Expense & Real Profit Tracker</div>", unsafe_allow_html=True)
+
+    col_exp1, col_exp2 = st.columns([1, 2])
+
+    with col_exp1:
+        st.subheader("➕ Add Shop Expense")
+        exp_title = st.text_input("Expense Title (e.g. Paper Rim, Rent, Tea)", key="exp_title")
+        exp_amount = st.number_input("Expense Amount (₹)", min_value=0, step=10, key="exp_amount")
+
+        if st.button("💾 Add Expense", type="primary", use_container_width=True):
+            if exp_title.strip() and exp_amount > 0:
+                st.session_state.expenses.append({
+                    "date": selected_date_str,
+                    "title": exp_title.strip(),
+                    "amount": exp_amount
+                })
+                st.success("Expense Added!")
+                st.rerun()
+            else:
+                st.error("Please enter a valid expense title and amount.")
+
+    with col_exp2:
+        st.subheader(f"📊 Expense Summary for {selected_date_str}")
+        
+        current_date_expenses = [e for e in st.session_state.expenses if e["date"] == selected_date_str]
+        total_exp = sum(e["amount"] for e in current_date_expenses)
+        real_profit = day_net - total_exp
+
+        e_m1, e_m2, e_m3 = st.columns(3)
+        e_m1.metric("GROSS NET PROFIT", f"₹ {day_net:,}")
+        e_m2.metric("TOTAL EXPENSES", f"₹ {total_exp:,}")
+        e_m3.metric("ACTUAL SAVINGS", f"₹ {real_profit:,}")
+
+        st.markdown("---")
+        if current_date_expenses:
+            st.markdown("**Today's Expense Breakdown:**")
+            for exp in current_date_expenses:
+                st.write(f"• **{exp['title']}**: ₹ {exp['amount']}")
+        else:
+            st.info("No expenses recorded for today yet.")
+
+# ============================================================
+# TAB 5: CURRENT RECORDS & INSTANT SEARCH
+# ============================================================
+with tab5:
+    st.markdown("<div class='nc-section'>📂 Customer Records & Instant Search</div>", unsafe_allow_html=True)
+
+    if df_all.empty:
+        st.info("No records available.")
+    else:
+        search_query = st.text_input("🔍 Search Record (Type Customer Name, Mobile Number, or Service Name)", "")
+
+        if search_query.strip():
+            q = search_query.strip().lower()
+            filtered_df = df_all[
+                df_all["name"].str.lower().str.contains(q, na=False) |
+                df_all["mobile"].str.lower().str.contains(q, na=False) |
+                df_all["service"].str.lower().str.contains(q, na=False)
+            ]
+        else:
+            filtered_df = df_all
+
+        export_df = filtered_df.drop(columns=["_row_number"], errors="ignore")
+
+        b1, b2 = st.columns(2)
+        with b1:
+            st.download_button(
+                "📥 DOWNLOAD CSV",
+                data=export_df.to_csv(index=False).encode("utf-8-sig"),
+                file_name="NOOR_CYBER_WORLD_RECORDS.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        with b2:
+            pdf_bytes = generate_pdf(export_df)
+            st.download_button(
+                "📄 DOWNLOAD PDF",
+                data=pdf_bytes,
+                file_name="NOOR_CYBER_WORLD_RECORDS.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+
+        st.markdown("---")
+        st.caption(f"Showing {len(filtered_df)} records")
+
+        for _, row in filtered_df.iterrows():
+            is_udhari = "udhari" in str(row['payment']).lower() or "credit" in str(row['payment']).lower()
+            card_class = "nc-card-red" if is_udhari else "nc-card-green"
+            badge = "🔴 CREDIT" if is_udhari else "🟢 CASH"
+
+            st.markdown(
+                f"""
+                <div class='{card_class}'>
+                <b>☁️ {row['name']}</b> ({row['mobile']}) &nbsp;|&nbsp; {badge}<br>
+                Service: <b>{row['service']}</b> | Total Fee: <b>₹ {float(row['amount']):,.0f}</b> | Net Profit: <b>₹ {float(row['net_amount']):,.0f}</b><br>
+                Date: {row['created_at']} | Expiry: {row['expiry']}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+if "success_message" in st.session_state:
+    st.toast(st.session_state.pop("success_message"), icon="✅")
