@@ -37,20 +37,79 @@ st.markdown("""
 st.markdown("---")
 
 def get_records():
+    columns = [
+        "created_at", "name", "mobile", "service",
+        "amount", "payment", "expiry", "_row_number"
+    ]
+
+    st.session_state["api_error"] = ""
+
     try:
-        fetch_url = f"{WEB_APP_URL}?t={datetime.now().timestamp()}"
-        res = requests.get(fetch_url, timeout=12)
-        if res.status_code == 200:
+        res = requests.get(
+            WEB_APP_URL,
+            params={"t": int(datetime.now().timestamp())},
+            timeout=25
+        )
+
+        if res.status_code != 200:
+            st.session_state["api_error"] = f"Google Apps Script HTTP error: {res.status_code}"
+            return pd.DataFrame(columns=columns)
+
+        try:
             data = res.json()
-            if isinstance(data, list):
-                df = pd.DataFrame(data)
-                if not df.empty and "created_at" in df.columns:
-                    df["created_at"] = df["created_at"].astype(str)
-                    df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
-                    return df
-        return pd.DataFrame(columns=["created_at", "name", "mobile", "service", "amount", "payment", "expiry"])
-    except Exception:
-        return pd.DataFrame(columns=["created_at", "name", "mobile", "service", "amount", "payment", "expiry"])
+        except Exception:
+            st.session_state["api_error"] = (
+                "Google Apps Script did not return JSON. "
+                "Check the Apps Script deployment URL."
+            )
+            return pd.DataFrame(columns=columns)
+
+        if isinstance(data, dict):
+            st.session_state["api_error"] = str(
+                data.get("error", "Google Apps Script returned an unexpected response.")
+            )
+            return pd.DataFrame(columns=columns)
+
+        if not isinstance(data, list):
+            st.session_state["api_error"] = "Unexpected data received from Google Sheet."
+            return pd.DataFrame(columns=columns)
+
+        if not data:
+            return pd.DataFrame(columns=columns)
+
+        df = pd.DataFrame(data)
+
+        for col in columns:
+            if col not in df.columns:
+                df[col] = ""
+
+        for col in ["name", "mobile", "service", "payment", "expiry"]:
+            df[col] = df[col].fillna("").astype(str)
+
+        raw_dates = df["created_at"].copy()
+        parsed_dates = pd.to_datetime(raw_dates, errors="coerce")
+        df["created_at"] = parsed_dates.dt.strftime("%Y-%m-%d")
+
+        failed = parsed_dates.isna()
+        df.loc[failed, "created_at"] = raw_dates.loc[failed].astype(str)
+
+        df["amount"] = pd.to_numeric(
+            df["amount"], errors="coerce"
+        ).fillna(0)
+
+        for i in range(len(df)):
+            try:
+                df.at[i, "_row_number"] = int(
+                    float(df.at[i, "_row_number"])
+                )
+            except Exception:
+                df.at[i, "_row_number"] = i + 2
+
+        return df[columns]
+
+    except Exception as e:
+        st.session_state["api_error"] = f"Data loading error: {e}"
+        return pd.DataFrame(columns=columns)
 
 def add_record(created_at, name, mobile, service, amount, payment, expiry):
     payload = {
@@ -63,13 +122,32 @@ def add_record(created_at, name, mobile, service, amount, payment, expiry):
         "payment": str(payment),
         "expiry": str(expiry)
     }
+
     try:
-        # allow_redirects=True for Google Script redirects
-        res = requests.post(WEB_APP_URL, data=payload, timeout=15, allow_redirects=True)
-        # Any 2xx or redirect status means success in Google Apps Script
-        return res.status_code < 400
-    except Exception:
-        return False
+        res = requests.post(
+            WEB_APP_URL,
+            data=payload,
+            timeout=25,
+            allow_redirects=True
+        )
+
+        if res.status_code >= 400:
+            return False, f"HTTP {res.status_code}"
+
+        try:
+            data = res.json()
+            if data.get("success") is True:
+                return True, str(
+                    data.get("message", "Entry saved successfully.")
+                )
+            return False, str(
+                data.get("error", data.get("message", "Save failed."))
+            )
+        except Exception:
+            return False, "Invalid response from Google Apps Script."
+
+    except Exception as e:
+        return False, str(e)
 
 def update_record(row_number, created_at, name, mobile, service, amount, payment, expiry):
     payload = {
@@ -123,11 +201,28 @@ services_list = [
 ]
 
 df_all = get_records()
+
+if "success_message" in st.session_state:
+    st.success(st.session_state.pop("success_message"))
+
+if st.session_state.get("api_error"):
+    st.error("⚠️ Google Sheet connection problem")
+    st.caption(st.session_state["api_error"])
+
 curr_date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
 
 if not df_all.empty and "created_at" in df_all.columns:
-    day_df = df_all[df_all["created_at"] == curr_date_str]
-    day_total = int(day_df["amount"].sum()) if not day_df.empty else 0
+    normalized_created = pd.to_datetime(
+        df_all["created_at"], errors="coerce"
+    ).dt.strftime("%Y-%m-%d")
+
+    day_df = df_all[
+        normalized_created == curr_date_str
+    ].copy()
+
+    day_total = int(
+        day_df["amount"].sum()
+    ) if not day_df.empty else 0
 else:
     day_df = pd.DataFrame()
     day_total = 0
@@ -225,13 +320,24 @@ with tab1:
             date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
             
             with st.spinner("Saving entry to Google Sheet..."):
-                success = add_record(date_str, name, mobile, final_service, amount, pay_mode, exp_str)
-            
+                success, message = add_record(
+                    date_str,
+                    name,
+                    mobile,
+                    final_service,
+                    amount,
+                    pay_mode,
+                    exp_str
+                )
+
             if success:
-                st.success(f"✅ Success! Entry for '{name}' (₹{amount}) saved successfully!")
-                st.info("💡 Scroll up to see the newly updated entry in your list above.")
+                st.session_state["success_message"] = (
+                    f"✅ Success! Entry for '{name}' (₹{amount}) saved successfully!"
+                )
+                st.rerun()
             else:
                 st.error("❌ Google Sheet server error. Please try again.")
+                st.caption(message)
 
 with tab2:
     st.subheader("⚠️ Renewal Alerts (Next 15 Days)")
@@ -439,4 +545,3 @@ with tab3:
                 st.session_state.edit_index = None
                 st.rerun()
             st.markdown("<hr style='margin:4px 0;opacity:0.2;'>", unsafe_allow_html=True)
-
