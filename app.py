@@ -1477,6 +1477,33 @@ if "success_message" in st.session_state:
 
 
 df_all = clean_df(
+    # ============================================================
+# MERGE SHEET + LOCAL SAFELY
+# ============================================================
+
+df_all = clean_df(
+    st.session_state.records_cache
+)
+
+if not df_all.empty:
+
+    # Same local ID duplicate असल्यास एकच record
+    if "_local_id" in df_all.columns:
+
+        local_ids = (
+            df_all["_local_id"]
+            .fillna("")
+            .astype(str)
+        )
+
+        df_all = (
+            df_all[
+                (local_ids == "")
+                |
+                (~local_ids.duplicated())
+            ]
+            .reset_index(drop=True)
+        )
     st.session_state.records_cache
 )
 
@@ -1495,10 +1522,6 @@ if not local_df.empty:
     persist_local_df(
         df_all
     )
-
-else:
-
-    local_storage_clear()
 
 
 # ============================================================
@@ -1749,12 +1772,18 @@ current_date = (
 
 if not df_all.empty:
 
-    date_values = pd.to_datetime(
+    date_values = (
+    pd.to_datetime(
         df_all["created_at"],
         errors="coerce"
-    ).dt.strftime(
-        "%Y-%m-%d"
     )
+    .dt.strftime("%Y-%m-%d")
+    .fillna("")
+)
+
+day_df = df_all[
+    date_values == current_date
+].copy()
 
     day_df = df_all[
         date_values == current_date
