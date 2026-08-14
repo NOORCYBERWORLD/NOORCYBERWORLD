@@ -71,19 +71,18 @@ def add_record(created_at, name, mobile, service, amount, payment, expiry):
 if "selected_view_date" not in st.session_state:
     st.session_state.selected_view_date = get_today_ist()
 
-if "services_list" not in st.session_state:
-    st.session_state.services_list = [
-        "Aadhaar Card Download / Update", "PAN Card New / Correction", "Voter ID Card Apply / Correction",
-        "Ration Card Services", "Ayushman Bharat Card", "E-Shram Card", "Income Certificate",
-        "Caste Certificate", "Domicile Certificate", "Non-Creamy Layer Certificate",
-        "Gazette Notification / Name Change", "Passport Application", "Driving License (LL/DL) & RC Services",
-        "PM Kisan Samman Nidhi / KYC", "PF / EPF Withdrawal & Claim", "Government Job Online Forms",
-        "Admission & Scholarship Forms", "Railway / Bus / Air Ticket Booking", "Electricity / Gas / Water Bill Payment",
-        "Money Transfer (DMT) / AEPS Cash Withdrawal", "Mobile / DTH Recharge", "Xerox / Color Printout / Lamination / Scanning",
-        "Resume / Bio-Data Making", "Udyam Aadhaar / MSME Registration", "Shop Act License / FSSAI Food License",
-        "GST Registration & Return Filing", "Income Tax Return (ITR) Filing", "Police Verification Application",
-        "Digital Signature (DSC)", "PVC Card Printing", "Other"
-    ]
+services_list = [
+    "Aadhaar Card Download / Update", "PAN Card New / Correction", "Voter ID Card Apply / Correction",
+    "Ration Card Services", "Ayushman Bharat Card", "E-Shram Card", "Income Certificate",
+    "Caste Certificate", "Domicile Certificate", "Non-Creamy Layer Certificate",
+    "Gazette Notification / Name Change", "Passport Application", "Driving License (LL/DL) & RC Services",
+    "PM Kisan Samman Nidhi / KYC", "PF / EPF Withdrawal & Claim", "Government Job Online Forms",
+    "Admission & Scholarship Forms", "Railway / Bus / Air Ticket Booking", "Electricity / Gas / Water Bill Payment",
+    "Money Transfer (DMT) / AEPS Cash Withdrawal", "Mobile / DTH Recharge", "Xerox / Color Printout / Lamination / Scanning",
+    "Resume / Bio-Data Making", "Udyam Aadhaar / MSME Registration", "Shop Act License / FSSAI Food License",
+    "GST Registration & Return Filing", "Income Tax Return (ITR) Filing", "Police Verification Application",
+    "Digital Signature (DSC)", "PVC Card Printing", "Other"
+]
 
 df_all = get_records()
 curr_date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
@@ -147,56 +146,56 @@ with tab1:
     st.markdown("---")
     st.subheader(f"➕ Add Entry for {st.session_state.selected_view_date.strftime('%d-%m-%Y')}")
     
-    with st.form("tab1_add_entry_form"):
-        col_a, col_b = st.columns(2)
-        with col_a:
-            name = st.text_input("Customer Name*")
-            mobile = st.text_input("Mobile Number*")
-            selected_service = st.selectbox("Search / Select Service*", st.session_state.services_list)
-            custom_srv = st.text_input("Type Custom Service Name (If 'Other' Selected)")
+    # Direct Form Inputs without Nesting Errors
+    col_a, col_b = st.columns(2)
+    with col_a:
+        name = st.text_input("Customer Name*", key="cust_name_input")
+        mobile = st.text_input("Mobile Number*", key="cust_mob_input")
+        selected_service = st.selectbox("Search / Select Service*", services_list, key="srv_select_input")
+        custom_srv = st.text_input("Type Custom Service Name (If 'Other' Selected)", key="custom_srv_input")
 
-        with col_b:
-            amount = st.number_input("Amount (₹)", min_value=0, step=10)
-            pay_mode = st.radio("Payment Mode", ["Cash", "Online"], horizontal=True)
-            has_expiry = st.checkbox("Requires Renewal / Validity?")
-            dur_unit = st.selectbox("Validity Unit", ["Days", "Months", "Years"], index=1)
-            dur_val = st.number_input("Validity Duration Value", min_value=1, value=1)
+    with col_b:
+        amount = st.number_input("Amount (₹)", min_value=0, step=10, key="amt_input")
+        pay_mode = st.radio("Payment Mode", ["Cash", "Online"], horizontal=True, key="pay_mode_input")
+        has_expiry = st.checkbox("Requires Renewal / Validity?", key="has_exp_input")
+        dur_unit = st.selectbox("Validity Unit", ["Days", "Months", "Years"], index=1, key="dur_unit_input")
+        dur_val = st.number_input("Validity Duration Value", min_value=1, value=1, key="dur_val_input")
 
-        submitted = st.form_submit_button("💾 Save Entry to Cloud Sheet", type="primary")
-        if submitted:
-            if name.strip() and mobile.strip():
-                final_service = selected_service
-                if selected_service == "Other":
-                    if custom_srv.strip():
-                        final_service = custom_srv.strip()
-                    else:
-                        st.error("Please specify custom service name!")
-                        st.stop()
-                
-                exp_str = "N/A"
-                if has_expiry:
-                    entry_d = st.session_state.selected_view_date
-                    if dur_unit == "Days":
-                        calc_exp = entry_d + timedelta(days=int(dur_val))
-                    elif dur_unit == "Months":
-                        calc_exp = entry_d + relativedelta(months=int(dur_val))
-                    elif dur_unit == "Years":
-                        calc_exp = entry_d + relativedelta(years=int(dur_val))
-                    exp_str = calc_exp.strftime("%Y-%m-%d")
-
-                date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
-                
-                with st.spinner("Saving entry to Google Sheet..."):
-                    success = add_record(date_str, name, mobile, final_service, amount, pay_mode, exp_str)
-                
-                if success:
-                    st.cache_data.clear()
-                    st.success(f"✅ Success! Entry for {name} saved successfully!")
-                    st.rerun()
+    st.write("")
+    if st.button("💾 Save Entry to Cloud Sheet", type="primary", use_container_width=True):
+        if not name.strip() or not mobile.strip():
+            st.error("⚠️ Please enter Customer Name and Mobile Number!")
+        else:
+            final_service = selected_service
+            if selected_service == "Other":
+                if custom_srv.strip():
+                    final_service = custom_srv.strip()
                 else:
-                    st.error("❌ Failed to save. Please try again.")
+                    st.error("⚠️ Please type the custom service name!")
+                    st.stop()
+            
+            exp_str = "N/A"
+            if has_expiry:
+                entry_d = st.session_state.selected_view_date
+                if dur_unit == "Days":
+                    calc_exp = entry_d + timedelta(days=int(dur_val))
+                elif dur_unit == "Months":
+                    calc_exp = entry_d + relativedelta(months=int(dur_val))
+                elif dur_unit == "Years":
+                    calc_exp = entry_d + relativedelta(years=int(dur_val))
+                exp_str = calc_exp.strftime("%Y-%m-%d")
+
+            date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
+            
+            with st.spinner("Saving entry to Google Sheet..."):
+                success = add_record(date_str, name, mobile, final_service, amount, pay_mode, exp_str)
+            
+            if success:
+                st.cache_data.clear()
+                st.success(f"✅ Entry for '{name}' saved successfully!")
+                st.balloons()
             else:
-                st.error("Please enter Name and Mobile Number!")
+                st.error("❌ Google Sheet server error. Please check Apps Script connection.")
 
 with tab2:
     st.subheader("⚠️ Renewal Alerts (Next 15 Days)")
