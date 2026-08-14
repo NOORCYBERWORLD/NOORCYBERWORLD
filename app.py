@@ -1,21 +1,20 @@
 import streamlit as st
 import pandas as pd
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
-import pytz
 
 # Page Config
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
 
-# Google Apps Script Web App URL
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz99KiU0VeM51KPA3DqI5saBsf80EFm4nD61r60Bl0bygrXb9otog6HELfew3zC4eBq/exec"
+# Google Apps Script Web App URL (Updated)
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxfb9UlZt5QXCTC_a4U95VopEgYmKunhwKGRpBwnjxNQ-ahdS_ivYTORRxjeams_CQ/exec"
 
-# Indian Standard Time
-IST = pytz.timezone('Asia/Kolkata')
+# Indian Standard Time (IST) Offset: UTC + 5:30
+IST_OFFSET = timezone(timedelta(hours=5, minutes=30))
 
 def get_today_ist():
-    return datetime.now(IST).date()
+    return datetime.now(IST_OFFSET).date()
 
 # Custom UI Styling
 st.markdown("""
