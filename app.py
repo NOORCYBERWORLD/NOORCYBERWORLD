@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
 
 # Google Apps Script Web App URL
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxfb9UlZt5QXCTC_a4U95VopEgYmKunhwKGRpBwnjxNQ-ahdS_ivYTORRxjeams_CQ/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8T3GysOqx5Ye3vliBEUQt_1UQXEaAT8ybr3qIhe68HSOHRC3I-swoizibdL9-UBA/exec"
 
 # IST Offset
 IST_OFFSET = timezone(timedelta(hours=5, minutes=30))
