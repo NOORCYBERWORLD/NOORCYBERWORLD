@@ -1481,6 +1481,10 @@ df_all = clean_df(
 # MERGE SHEET + LOCAL SAFELY
 # ============================================================
 
+# ============================================================
+# MERGE SHEET + LOCAL SAFELY
+# ============================================================
+
 df_all = clean_df(
     st.session_state.records_cache
 )
@@ -1498,6 +1502,21 @@ if not df_all.empty:
 
         df_all = (
             df_all[
+                (local_ids == "")
+                |
+                (~local_ids.duplicated())
+            ]
+            .reset_index(drop=True)
+        )
+
+
+local_df = df_all[
+    df_all["_source"] == "local"
+].copy()
+
+sheet_df = df_all[
+    df_all["_source"] == "sheet"
+].copy()
                 (local_ids == "")
                 |
                 (~local_ids.duplicated())
