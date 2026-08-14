@@ -3,13 +3,14 @@ import pandas as pd
 import requests
 import json
 import uuid
+
 from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from urllib.parse import quote
-from streamlit_js_eval import streamlit_js_eval
+
 
 # ============================================================
-# APP CONFIG
+# PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
@@ -19,58 +20,427 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+
+# ============================================================
+# GOOGLE APPS SCRIPT
+# ============================================================
+
 WEB_APP_URL = (
-    "https://script.google.com/macros/s/AKfycbzpDRn2srFz_HrHgjUs-EpAn3HzUA-gv9Rb5P-apR5uC83JOPYSDjggE8NKl2MC9S3f/exec"
+    "https://script.google.com/macros/s/"
+    "AKfycbzpDRn2srFz_HrHgjUs-EpAn3HzUA-gv9Rb5P-apR5uC83JOPYSDjggE8NKl2MC9S3f"
+    "/exec"
 )
 
-IST = timezone(timedelta(hours=5, minutes=30))
+
+# ============================================================
+# TIMEZONE
+# ============================================================
+
+IST = timezone(
+    timedelta(
+        hours=5,
+        minutes=30
+    )
+)
+
+
+# ============================================================
+# COLUMNS
+# ============================================================
 
 COLUMNS = [
-    "created_at", "name", "mobile", "service",
-    "amount", "payment", "expiry",
-    "_row_number", "_source", "_local_id"
+    "created_at",
+    "name",
+    "mobile",
+    "service",
+    "amount",
+    "payment",
+    "expiry",
+    "_row_number",
+    "_source",
+    "_local_id"
 ]
 
-SERVICES = [
-   DEFAULT_SERVICES = [
+
+# ============================================================
+# DEFAULT SERVICES
+# ============================================================
+
+DEFAULT_SERVICES = [
+
     "Aadhaar Card Download / Update",
+
     "Ayushman Bharat Card",
+
     "Caste Certificate",
+
     "Digital Signature (DSC)",
+
     "Domicile Certificate",
+
     "Driving License (LL/DL) & RC Services",
-    "E-Creamy Layer Certificate",
+
     "E-Shram Card",
+
     "Electricity / Gas / Water Bill Payment",
+
     "FSSAI Food License",
+
     "Gazette Notification / Name Change",
+
     "GST Registration & Return Filing",
+
     "Income Certificate",
+
     "Income Tax Return (ITR) Filing",
+
     "Money Transfer (DMT) / AEPS Cash Withdrawal",
+
     "Mobile / DTH Recharge",
+
     "Non-Creamy Layer Certificate",
+
     "PAN Card New / Correction",
+
     "Passport Application",
+
     "PF / EPF Withdrawal & Claim",
+
     "Police Verification Application",
+
     "PM Kisan Samman Nidhi / KYC",
+
     "PVC Card Printing",
+
     "Railway / Bus / Air Ticket Booking",
+
     "Ration Card Services",
+
     "Resume / Bio-Data Making",
-    "Shop Act License / FSSAI Food License",
+
+    "Shop Act License",
+
     "Udyam Aadhaar / MSME Registration",
+
     "Voter ID Card Apply / Correction",
+
     "Xerox / Color Printout / Lamination / Scanning",
+
     "Other"
 ]
 
+
+# ============================================================
+# SORT SERVICES
+# ============================================================
+
 DEFAULT_SERVICES = sorted(
-    set(DEFAULT_SERVICES),
+
+    [
+        service
+        for service in DEFAULT_SERVICES
+        if service != "Other"
+    ],
+
     key=lambda x: x.lower()
+
+) + ["Other"]
+
+
+# ============================================================
+# CUSTOM SERVICES
+# ============================================================
+
+if "custom_services" not in st.session_state:
+
+    st.session_state.custom_services = []
+
+
+def get_all_services():
+
+    services = (
+
+        DEFAULT_SERVICES[:-1]
+        +
+        st.session_state.custom_services
+
+    )
+
+    services = sorted(
+
+        set(
+
+            service.strip()
+
+            for service in services
+
+            if service
+            and service.strip()
+
+        ),
+
+        key=lambda x: x.lower()
+
+    )
+
+    services.append("Other")
+
+    return services
+
+
+# ============================================================
+# SESSION VARIABLES
+# ============================================================
+
+if "local_counter" not in st.session_state:
+
+    st.session_state.local_counter = 0
+
+
+if "selected_date" not in st.session_state:
+
+    st.session_state.selected_date = (
+        datetime.now(IST).date()
+    )
+
+
+if "edit_key" not in st.session_state:
+
+    st.session_state.edit_key = None
+
+
+if "delete_key" not in st.session_state:
+
+    st.session_state.delete_key = None
+
+
+if "records_cache" not in st.session_state:
+
+    st.session_state.records_cache = pd.DataFrame(
+        columns=COLUMNS
+    )
+
+
+# ============================================================
+# PROFESSIONAL DESIGN
+# ============================================================
+
+st.markdown(
+    """
+<style>
+
+@import url(
+'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap'
+);
+
+.stApp {
+
+    background:
+        linear-gradient(
+            115deg,
+            rgba(5,8,15,.96),
+            rgba(7,18,32,.88)
+        ),
+        url(
+            "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=2400&q=80"
+        )
+        center/cover fixed no-repeat;
+
+    color:#f8fafc;
+
+    font-family:
+        'Inter',
+        sans-serif;
+}
+
+
+.block-container {
+
+    max-width:1450px;
+
+    padding-top:1rem;
+
+    padding-bottom:3rem;
+
+}
+
+
+.nc-header {
+
+    text-align:center;
+
+    padding:
+        12px 10px 20px;
+
+}
+
+
+.nc-title {
+
+    font-family:
+        'Orbitron',
+        sans-serif;
+
+    font-size:
+        clamp(28px,4vw,48px);
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        4px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #ff3b30,
+            #ffffff,
+            #22d3ee
+        );
+
+    -webkit-background-clip:
+        text;
+
+    -webkit-text-fill-color:
+        transparent;
+
+}
+
+
+.nc-sub {
+
+    margin-top:
+        8px;
+
+    color:
+        #cbd5e1;
+
+    font-size:
+        13px;
+
+    letter-spacing:
+        2px;
+
+}
+
+
+.nc-status {
+
+    display:
+        inline-block;
+
+    margin-top:
+        12px;
+
+    padding:
+        5px 12px;
+
+    border-radius:
+        999px;
+
+    background:
+        rgba(34,197,94,.12);
+
+    border:
+        1px solid
+        rgba(34,197,94,.3);
+
+    color:
+        #86efac;
+
+    font-size:
+        12px;
+
+}
+
+
+button[data-baseweb="tab"] {
+
+    font-weight:
+        700 !important;
+
+    border-radius:
+        12px 12px 0 0 !important;
+
+}
+
+
+.stButton > button {
+
+    border-radius:
+        11px !important;
+
+    font-weight:
+        700 !important;
+
+}
+
+
+div[data-testid="stMetric"] {
+
+    background:
+        rgba(15,23,42,.82);
+
+    border:
+        1px solid
+        rgba(96,165,250,.22);
+
+    border-radius:
+        18px;
+
+    padding:
+        18px;
+
+}
+
+
+div[data-testid="stForm"] {
+
+    background:
+        rgba(15,23,42,.72);
+
+    border:
+        1px solid
+        rgba(96,165,250,.22);
+
+    border-radius:
+        18px;
+
+    padding:
+        20px;
+
+}
+
+</style>
+""",
+    unsafe_allow_html=True
 )
-]
+
+
+# ============================================================
+# HEADER
+# ============================================================
+
+st.markdown(
+    """
+<div class="nc-header">
+
+    <div class="nc-title">
+        NOOR CYBER WORLD
+    </div>
+
+    <div class="nc-sub">
+        DIGITAL SERVICE • CUSTOMER MANAGEMENT • SMART RECORD SYSTEM
+    </div>
+
+    <div class="nc-status">
+        ● SYSTEM ONLINE
+    </div>
+
+</div>
+""",
+    unsafe_allow_html=True
+)
 
 # ============================================================
 # PROFESSIONAL UI
