@@ -73,7 +73,7 @@ st.markdown("""
 # GOOGLE APPS SCRIPT URL (HARDCODED)
 # ============================================================
 
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzpDRn2srFz_HrHgjUs-EpAn3HzUA-gv9Rb5P-apR5uC83JOPYSDjggE8NKl2MC9S3f/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbytGWMPZpnOWm6v2ibp7_nn0ZuvFb8VwWNpqBenI_gcuq_tH3w9RsYiF1zGLzfCDDgg/exec"
 
 # ============================================================
 # TIMEZONE & COLUMNS
