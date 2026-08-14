@@ -4,7 +4,6 @@ import requests
 import json
 import uuid
 
-from streamlit_js_eval import streamlit_js_eval
 from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from urllib.parse import quote
@@ -86,9 +85,7 @@ COLUMNS = [
     "amount",
     "payment",
     "expiry",
-    "_row_number",
-    "_source",
-    "_local_id"
+    "_row_number"
 ]
 
 # ============================================================
@@ -144,17 +141,8 @@ SERVICES = get_all_services()
 # SESSION VARIABLES
 # ============================================================
 
-if "local_counter" not in st.session_state:
-    st.session_state.local_counter = 0
-
 if "selected_date" not in st.session_state:
     st.session_state.selected_date = datetime.now(IST).date()
-
-if "edit_key" not in st.session_state:
-    st.session_state.edit_key = None
-
-if "delete_key" not in st.session_state:
-    st.session_state.delete_key = None
 
 if "records_cache" not in st.session_state:
     st.session_state.records_cache = pd.DataFrame(columns=COLUMNS)
@@ -236,7 +224,7 @@ div[data-testid="stMetricValue"] { font-weight:800; }
 
 
 # ============================================================
-# HELPER FUNCTIONS
+# HELPER FUNCTIONS & SHEET API
 # ============================================================
 
 def today_ist():
@@ -254,7 +242,7 @@ def clean_df(df):
         if col not in df.columns:
             df[col] = ""
 
-    for col in ["name", "mobile", "service", "payment", "expiry", "_source", "_local_id"]:
+    for col in ["name", "mobile", "service", "payment", "expiry"]:
         df[col] = df[col].fillna("").astype(str)
 
     raw = df["created_at"].fillna("").astype(str)
@@ -263,15 +251,7 @@ def clean_df(df):
     df.loc[parsed.isna(), "created_at"] = raw[parsed.isna()]
 
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
-
-    for i in range(len(df)):
-        try:
-            df.at[df.index[i], "_row_number"] = int(float(df.at[df.index[i], "_row_number"]))
-        except Exception:
-            df.at[df.index[i], "_row_number"] = -1
-
     return df[COLUMNS]
-
 
 def fetch_sheet_records():
     try:
@@ -294,11 +274,9 @@ def fetch_sheet_records():
         if df.empty:
             return (empty_df(), "")
 
-        df["_source"] = "sheet"
         return (clean_df(df), "")
     except Exception as e:
         return (empty_df(), str(e))
-
 
 def api_post(payload):
     try:
@@ -310,98 +288,15 @@ def api_post(payload):
 
 
 # ============================================================
-# SAFE LOCAL STORAGE
+# INITIAL LOAD FROM SHEET
 # ============================================================
 
-LOCAL_STORAGE_KEY = "noor_cyber_pending_v3"
-
-def local_storage_get():
-    try:
-        raw = streamlit_js_eval(
-            js_expressions=f"localStorage.getItem('{LOCAL_STORAGE_KEY}')",
-            want_output=True,
-            key="noor_local_get_v3"
-        )
-        if not raw:
-            return []
-        if isinstance(raw, str):
-            return json.loads(raw)
-        return []
-    except Exception:
-        return None
-
-def local_storage_set(records):
-    try:
-        payload = json.dumps(records, ensure_ascii=False)
-        expression = f"localStorage.setItem({json.dumps(LOCAL_STORAGE_KEY)},{json.dumps(payload)}); true"
-        return streamlit_js_eval(js_expressions=expression, want_output=True, key=f"noor_local_set_{uuid.uuid4().hex}")
-    except Exception:
-        return None
-
-def local_storage_clear():
-    try:
-        expression = f"localStorage.removeItem({json.dumps(LOCAL_STORAGE_KEY)}); true"
-        return streamlit_js_eval(js_expressions=expression, want_output=True, key=f"noor_local_clear_{uuid.uuid4().hex}")
-    except Exception:
-        return None
-
-def local_records_df():
-    records = local_storage_get()
-    if not records:
-        return empty_df()
-    try:
-        df = pd.DataFrame(records)
-        if df.empty:
-            return empty_df()
-        df["_source"] = "local"
-        df["_row_number"] = -1
-        return clean_df(df)
-    except Exception:
-        return empty_df()
-
-def persist_local_df(df):
-    if df is None or df.empty:
-        local_storage_clear()
-        return
-
-    local = df[df["_source"] == "local"].copy()
-    if local.empty:
-        local_storage_clear()
-        return
-
-    keep = ["created_at", "name", "mobile", "service", "amount", "payment", "expiry", "_local_id"]
-    records = local[keep].to_dict(orient="records")
-    local_storage_set(records)
-
-def sheet_row(row):
-    try:
-        return int(float(row["_row_number"]))
-    except Exception:
-        return -1
-
-
-# ============================================================
-# INITIAL LOAD
-# ============================================================
-
-if "local_boot_loaded" not in st.session_state:
-    local_boot = local_records_df()
-    sheet_boot, load_error = fetch_sheet_records()
-
-    st.session_state.records_cache = pd.concat([sheet_boot, local_boot], ignore_index=True)
-    st.session_state.last_load_error = load_error
-    st.session_state.local_boot_loaded = True
-
+if "data_loaded" not in st.session_state:
+    sheet_data, err = fetch_sheet_records()
+    st.session_state.records_cache = sheet_data
+    st.session_state.data_loaded = True
 
 df_all = clean_df(st.session_state.records_cache)
-
-if not df_all.empty and "_local_id" in df_all.columns:
-    local_ids = df_all["_local_id"].fillna("").astype(str)
-    keep_mask = (local_ids == "") | (~local_ids.duplicated(keep="first"))
-    df_all = df_all.loc[keep_mask].reset_index(drop=True)
-
-local_df = df_all[df_all["_source"] == "local"].copy()
-sheet_df = df_all[df_all["_source"] == "sheet"].copy()
 
 
 # ============================================================
@@ -426,61 +321,22 @@ else:
 
 
 # ============================================================
-# TOP BAR WITH ACTION BUTTONS & RIGHT CORNER TOTALS
+# TOP BAR WITH REFRESH & RIGHT CORNER TOTALS
 # ============================================================
 
-a1, a2, a3 = st.columns([2, 2, 3])
+a1, a2 = st.columns([3, 4])
 
 with a1:
-    if st.button("☁️ BACKUP TO SHEET", use_container_width=True):
-        if local_df.empty:
-            st.info("✅ Everything is already backed up.")
-        else:
-            failed = []
-            progress = st.progress(0)
-            total = len(local_df)
-
-            for pos, (_, row) in enumerate(local_df.iterrows(), 1):
-                ok, msg = api_post({
-                    "action": "add",
-                    "created_at": str(row["created_at"]),
-                    "name": str(row["name"]),
-                    "mobile": str(row["mobile"]),
-                    "service": str(row["service"]),
-                    "amount": str(row["amount"]),
-                    "payment": str(row["payment"]),
-                    "expiry": str(row["expiry"]),
-                    "local_id": str(row["_local_id"])
-                })
-                if not ok:
-                    failed.append(f"{row['name']}: {msg}")
-                progress.progress(pos / total)
-
-            if not failed:
-                fresh, err = fetch_sheet_records()
-                if not err:
-                    st.session_state.records_cache = fresh
-                local_storage_clear()
-                st.session_state.local_boot_loaded = False
-                st.session_state.success_message = f"☁️ Backup complete — {total} entries saved!"
-                st.rerun()
-            else:
-                persist_local_df(df_all)
-                st.error("Some entries failed to sync.")
-
-with a2:
-    if st.button("🔄 LOAD FROM SHEET", use_container_width=True):
+    if st.button("🔄 REFRESH DATA FROM SHEET", use_container_width=True):
         fresh, err = fetch_sheet_records()
         if err:
             st.error(err)
         else:
-            pending_local = df_all[df_all["_source"] == "local"].copy()
-            st.session_state.records_cache = pd.concat([fresh, pending_local], ignore_index=True)
-            st.success("✅ Records loaded from Google Sheet.")
+            st.session_state.records_cache = fresh
+            st.success("✅ Records refreshed from Google Sheet!")
             st.rerun()
 
-with a3:
-    # RIGHT CORNER TOTALS
+with a2:
     st.markdown(
         f"""
         <div class="top-corner-stats">
@@ -562,8 +418,7 @@ with tab1:
     if day_df.empty:
         st.info("ℹ️ No entries recorded for this date yet.")
     else:
-        show_day = day_df.drop(columns=["_row_number", "_source", "_local_id"], errors="ignore").reset_index(drop=True)
-        show_day.insert(0, "Status", ["☁️ Sheet" if x == "sheet" else "⚡ Local" for x in day_df["_source"]])
+        show_day = day_df.drop(columns=["_row_number"], errors="ignore").reset_index(drop=True)
         st.dataframe(show_day, use_container_width=True, hide_index=True)
 
     st.markdown("---")
@@ -601,7 +456,6 @@ with tab1:
         else:
             final_service = service_selected
 
-            # HANDLE OTHER & AUTO-ADD CUSTOM SERVICE TO MAIN LIST
             if service_selected == "Other":
                 if not custom_service_input.strip():
                     st.error("Please enter the Custom Service Name.")
@@ -609,7 +463,6 @@ with tab1:
                 
                 final_service = custom_service_input.strip()
 
-                # Add to dynamic session state list if not already present
                 if final_service not in st.session_state.custom_services:
                     st.session_state.custom_services.append(final_service)
 
@@ -625,26 +478,37 @@ with tab1:
 
                 expiry = expiry_date.strftime("%Y-%m-%d")
 
-            st.session_state.local_counter += 1
-
-            new_row = {
+            payload = {
+                "action": "add",
                 "created_at": selected_date_str,
                 "name": name.strip(),
                 "mobile": mobile.strip(),
                 "service": final_service,
-                "amount": int(amount),
+                "amount": str(int(amount)),
                 "payment": payment,
-                "expiry": expiry,
-                "_row_number": -st.session_state.local_counter,
-                "_source": "local",
-                "_local_id": uuid.uuid4().hex
+                "expiry": expiry
             }
 
-            st.session_state.records_cache = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
-            persist_local_df(st.session_state.records_cache)
+            with st.spinner("Saving to Google Sheet..."):
+                ok, msg = api_post(payload)
 
-            st.session_state.success_message = f"✅ Entry for '{name}' added successfully!"
-            st.rerun()
+            if ok:
+                new_row = {
+                    "created_at": selected_date_str,
+                    "name": name.strip(),
+                    "mobile": mobile.strip(),
+                    "service": final_service,
+                    "amount": int(amount),
+                    "payment": payment,
+                    "expiry": expiry,
+                    "_row_number": -1
+                }
+
+                st.session_state.records_cache = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
+                st.session_state.success_message = f"✅ Entry for '{name}' saved successfully in Google Sheet!"
+                st.rerun()
+            else:
+                st.error(f"Failed to save entry: {msg}")
 
 
 # ============================================================
@@ -690,7 +554,7 @@ with tab2:
 
 
 # ============================================================
-# TAB 3: CURRENT RECORDS & ACTIONS
+# TAB 3: CURRENT RECORDS
 # ============================================================
 
 with tab3:
@@ -699,7 +563,7 @@ with tab3:
     if df_all.empty:
         st.info("No records available.")
     else:
-        export_df = df_all.drop(columns=["_row_number", "_source", "_local_id"], errors="ignore")
+        export_df = df_all.drop(columns=["_row_number"], errors="ignore")
 
         b1, b2 = st.columns(2)
         with b1:
@@ -722,11 +586,10 @@ with tab3:
         st.markdown("---")
 
         for _, row in df_all.iterrows():
-            source_icon = "☁️" if row["_source"] == "sheet" else "⚡"
             st.markdown(
                 f"""
                 <div class='nc-card'>
-                <b>{source_icon} {row['name']}</b> ({row['mobile']})<br>
+                <b>☁️ {row['name']}</b> ({row['mobile']})<br>
                 Service: <b>{row['service']}</b> | Amount: <b>₹ {float(row['amount']):,.0f}</b> | Payment: {row['payment']}<br>
                 Date: {row['created_at']} | Expiry: {row['expiry']}
                 </div>
@@ -734,6 +597,6 @@ with tab3:
                 unsafe_allow_html=True
             )
 
-# Success Toast Message
+# Toast notification
 if "success_message" in st.session_state:
     st.toast(st.session_state.pop("success_message"), icon="✅")
