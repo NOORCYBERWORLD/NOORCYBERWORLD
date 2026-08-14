@@ -4,6 +4,7 @@ import sqlite3
 import os
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from PIL import Image
 
 # Page Config
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
@@ -75,24 +76,30 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Smart Multi-Format Logo Loader Function
-def load_logo():
+# Safe Logo Loader Function
+def load_logo_safely():
     possible_names = ["logo.png", "logo.jpg", "logo.jpeg", "LOGO.PNG", "LOGO.JPG", "LOGO.JPEG"]
     for file in possible_names:
         if os.path.exists(file):
-            return file
+            try:
+                img = Image.open(file)
+                img.verify() # Check if image is valid
+                img = Image.open(file) # Reopen after verify
+                return img
+            except Exception:
+                continue
     return None
 
-logo_file = load_logo()
+logo_img = load_logo_safely()
 
 # App Header Layout
 col_logo, col_title = st.columns([1, 4])
 
 with col_logo:
-    if logo_file:
-        st.image(logo_file, width=130)
+    if logo_img:
+        st.image(logo_img, width=130)
     else:
-        st.info("💡 GitHub पर 'logo.png' अपलोड करें")
+        st.write("🖥️")
 
 with col_title:
     st.markdown("""
