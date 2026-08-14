@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 # Page Config
 st.set_page_config(page_title="NOOR CYBER WORLD", page_icon="🖥️", layout="wide")
 
-# Google Apps Script Web App URL (Updated)
+# Google Apps Script Web App URL
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxfb9UlZt5QXCTC_a4U95VopEgYmKunhwKGRpBwnjxNQ-ahdS_ivYTORRxjeams_CQ/exec"
 
 # Indian Standard Time (IST) Offset: UTC + 5:30
@@ -60,35 +60,38 @@ st.markdown("""
 st.markdown("---")
 
 # Data API Functions
+@st.cache_data(ttl=2) # 2 सेकेंड कैश ताकि नया डेटा तुरंत दिखे
 def get_records():
     try:
-        res = requests.get(WEB_APP_URL, timeout=10)
+        res = requests.get(WEB_APP_URL, timeout=12)
         if res.status_code == 200:
             data = res.json()
-            df = pd.DataFrame(data)
-            if not df.empty:
-                df["created_at"] = df["created_at"].astype(str)
-                df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
-            return df
-        else:
-            return pd.DataFrame(columns=["created_at", "name", "mobile", "service", "amount", "payment", "expiry"])
+            if isinstance(data, list):
+                df = pd.DataFrame(data)
+                if not df.empty and "created_at" in df.columns:
+                    df["created_at"] = df["created_at"].astype(str)
+                    df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
+                    return df
+        return pd.DataFrame(columns=["created_at", "name", "mobile", "service", "amount", "payment", "expiry"])
     except Exception:
         return pd.DataFrame(columns=["created_at", "name", "mobile", "service", "amount", "payment", "expiry"])
 
 def add_record(created_at, name, mobile, service, amount, payment, expiry):
     payload = {
-        "created_at": created_at,
-        "name": name,
+        "created_at": str(created_at),
+        "name": str(name),
         "mobile": str(mobile),
-        "service": service,
+        "service": str(service),
         "amount": float(amount),
-        "payment": payment,
-        "expiry": expiry
+        "payment": str(payment),
+        "expiry": str(expiry)
     }
     try:
-        res = requests.post(WEB_APP_URL, json=payload, timeout=10)
-        return res.status_code == 200
-    except Exception:
+        # allow_redirects=True से गूगल की सिक्योरिटी रिडायरेक्ट समस्या ख़त्म हो जाती है
+        res = requests.post(WEB_APP_URL, json=payload, timeout=15, allow_redirects=True)
+        return res.status_code in [200, 302]
+    except Exception as e:
+        st.error(f"Error: {e}")
         return False
 
 # Session State
@@ -190,7 +193,7 @@ with tab1:
 
         submitted = st.form_submit_button("💾 Save Entry to Cloud Sheet", type="primary")
         if submitted:
-            if name and mobile:
+            if name.strip() and mobile.strip():
                 final_service = selected_service
                 if selected_service == "Other":
                     if custom_srv.strip():
@@ -211,14 +214,18 @@ with tab1:
                     exp_str = calc_exp.strftime("%Y-%m-%d")
 
                 date_str = st.session_state.selected_view_date.strftime("%Y-%m-%d")
-                success = add_record(date_str, name, mobile, final_service, amount, pay_mode, exp_str)
+                
+                with st.spinner("Saving entry to Google Sheet..."):
+                    success = add_record(date_str, name, mobile, final_service, amount, pay_mode, exp_str)
+                
                 if success:
-                    st.success(f"✅ Entry saved safely to Google Sheets for {date_str}!")
+                    st.cache_data.clear() # Cache clear ताकि डेटा तुरंत रीफ़्रेश हो
+                    st.success(f"✅ Success! Entry for {name} saved successfully!")
                     st.rerun()
                 else:
-                    st.error("❌ Failed to save entry. Please check WEB_APP_URL.")
+                    st.error("❌ Failed to save. Please try again.")
             else:
-                st.error("Please fill Name and Mobile Number!")
+                st.error("Please enter Name and Mobile Number!")
 
 # TAB 2: ALERTS
 with tab2:
