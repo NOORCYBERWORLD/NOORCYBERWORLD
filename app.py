@@ -2037,6 +2037,7 @@ if service == "Other":
 
     final_service = custom_service.strip()
 
+    # Add new custom service to the dropdown
     if final_service not in st.session_state.custom_services:
 
         st.session_state.custom_services.append(
@@ -2051,6 +2052,7 @@ if service == "Other":
 else:
 
     final_service = service
+
 
     with right:
 
