@@ -2,4 +2,4 @@ streamlit
 pandas
 requests
 python-dateutil
-pytz
+streamlit-js-eval
