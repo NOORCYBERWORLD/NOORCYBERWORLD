@@ -1477,7 +1477,7 @@ if "success_message" in st.session_state:
 
 
 df_all = clean_df(
-  # ============================================================
+# ============================================================
 # MERGE SHEET + LOCAL SAFELY
 # ============================================================
 
@@ -1500,10 +1500,9 @@ if not df_all.empty and "_local_id" in df_all.columns:
         (~local_ids.duplicated(keep="first"))
     )
 
-    df_all = (
-        df_all.loc[keep_mask]
-        .reset_index(drop=True)
-    )
+    df_all = df_all.loc[
+        keep_mask
+    ].reset_index(drop=True)
 
 
 # Separate local and Google Sheet records
