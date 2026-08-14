@@ -32,37 +32,44 @@ COLUMNS = [
 ]
 
 SERVICES = [
+   DEFAULT_SERVICES = [
     "Aadhaar Card Download / Update",
-    "PAN Card New / Correction",
-    "Voter ID Card Apply / Correction",
-    "Ration Card Services",
     "Ayushman Bharat Card",
-    "E-Shram Card",
-    "Income Certificate",
     "Caste Certificate",
+    "Digital Signature (DSC)",
     "Domicile Certificate",
-    "Non-Creamy Layer Certificate",
-    "Gazette Notification / Name Change",
-    "Passport Application",
     "Driving License (LL/DL) & RC Services",
-    "PM Kisan Samman Nidhi / KYC",
-    "PF / EPF Withdrawal & Claim",
-    "Government Job Online Forms",
-    "Admission & Scholarship Forms",
-    "Railway / Bus / Air Ticket Booking",
+    "E-Creamy Layer Certificate",
+    "E-Shram Card",
     "Electricity / Gas / Water Bill Payment",
+    "FSSAI Food License",
+    "Gazette Notification / Name Change",
+    "GST Registration & Return Filing",
+    "Income Certificate",
+    "Income Tax Return (ITR) Filing",
     "Money Transfer (DMT) / AEPS Cash Withdrawal",
     "Mobile / DTH Recharge",
-    "Xerox / Color Printout / Lamination / Scanning",
-    "Resume / Bio-Data Making",
-    "Udyam Aadhaar / MSME Registration",
-    "Shop Act License / FSSAI Food License",
-    "GST Registration & Return Filing",
-    "Income Tax Return (ITR) Filing",
+    "Non-Creamy Layer Certificate",
+    "PAN Card New / Correction",
+    "Passport Application",
+    "PF / EPF Withdrawal & Claim",
     "Police Verification Application",
-    "Digital Signature (DSC)",
+    "PM Kisan Samman Nidhi / KYC",
     "PVC Card Printing",
+    "Railway / Bus / Air Ticket Booking",
+    "Ration Card Services",
+    "Resume / Bio-Data Making",
+    "Shop Act License / FSSAI Food License",
+    "Udyam Aadhaar / MSME Registration",
+    "Voter ID Card Apply / Correction",
+    "Xerox / Color Printout / Lamination / Scanning",
     "Other"
+]
+
+DEFAULT_SERVICES = sorted(
+    set(DEFAULT_SERVICES),
+    key=lambda x: x.lower()
+)
 ]
 
 # ============================================================
@@ -965,6 +972,36 @@ if "local_boot_loaded" not in st.session_state:
 if "local_counter" not in st.session_state:
 
     st.session_state.local_counter = 0
+    # ============================================================
+# CUSTOM SERVICES
+# ============================================================
+
+if "custom_services" not in st.session_state:
+
+    st.session_state.custom_services = []
+
+
+def get_all_services():
+
+    services = (
+        DEFAULT_SERVICES
+        + st.session_state.custom_services
+    )
+
+    services = sorted(
+        set(
+            s.strip()
+            for s in services
+            if s and s.strip()
+            and s.strip().lower() != "other"
+        ),
+        key=lambda x: x.lower()
+    )
+
+    # Other always at bottom
+    services.append("Other")
+
+    return services
 
 
 if "selected_date" not in st.session_state:
