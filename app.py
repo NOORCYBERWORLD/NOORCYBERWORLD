@@ -813,47 +813,105 @@ with tab1:
         unsafe_allow_html=True
     )
 
-    # -----------------------------------------------
-    # DAY SUMMARY
-    # -----------------------------------------------
+   # ============================================================
+# SELECTED DAY DATA
+# ============================================================
 
-    if day_df.empty:
+selected_date = st.session_state.selected_date
 
-        total_gross = 0
-        total_net = 0
-        cash_sum = 0
-        credit_sum = 0
+if not df_all.empty:
 
-    else:
+    temp_dates = pd.to_datetime(
+        df_all["created_at"],
+        errors="coerce"
+    )
 
-        total_gross = int(day_df["amount"].sum())
-        total_net = int(day_df["net_amount"].sum())
-        cash_sum = int(day_df["cash"].sum())
-        credit_sum = int(day_df["credit"].sum())
+    date_mask = (
+        temp_dates.dt.date == selected_date
+    )
 
-    m1, m2, m3, m4 = st.columns(4)
+    day_df = df_all.loc[
+        date_mask
+    ].copy()
 
-    m1.metric(
-        "TOTAL COLLECTION",
+else:
+
+    day_df = empty_df()
+
+
+# ============================================================
+# DAY SUMMARY
+# ============================================================
+
+if day_df.empty:
+
+    total_gross = 0
+    total_net = 0
+    cash_sum = 0
+    credit_sum = 0
+
+else:
+
+    total_gross = int(
+        pd.to_numeric(
+            day_df["amount"],
+            errors="coerce"
+        ).fillna(0).sum()
+    )
+
+    total_net = int(
+        pd.to_numeric(
+            day_df["net_amount"],
+            errors="coerce"
+        ).fillna(0).sum()
+    )
+
+    cash_sum = int(
+        pd.to_numeric(
+            day_df["cash"],
+            errors="coerce"
+        ).fillna(0).sum()
+    )
+
+    credit_sum = int(
+        pd.to_numeric(
+            day_df["credit"],
+            errors="coerce"
+        ).fillna(0).sum()
+    )
+
+
+# ============================================================
+# SUMMARY CARDS
+# ============================================================
+
+m1, m2, m3, m4 = st.columns(4)
+
+with m1:
+    st.metric(
+        "💰 TOTAL COLLECTION",
         f"₹ {total_gross:,}"
     )
 
-    m2.metric(
-        "CASH RECEIVED",
+with m2:
+    st.metric(
+        "💵 CASH RECEIVED",
         f"₹ {cash_sum:,}"
     )
 
-    m3.metric(
-        "PENDING CREDIT",
+with m3:
+    st.metric(
+        "🔴 PENDING CREDIT",
         f"₹ {credit_sum:,}"
     )
 
-    m4.metric(
-        "NET PROFIT",
+with m4:
+    st.metric(
+        "📈 NET PROFIT",
         f"₹ {total_net:,}"
     )
 
-    st.markdown("---")
+st.markdown("---")
 
     # -----------------------------------------------
     # TODAY'S CUSTOMER ENTRIES
