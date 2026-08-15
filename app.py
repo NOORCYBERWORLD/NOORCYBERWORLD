@@ -177,19 +177,24 @@ st.markdown(
 }
 
 .nc-title {
-    font-size:32px;
-    line-height:1.1;
-    font-weight:800;
-    letter-spacing:3px;
-    color:#ffffff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: 4px;
+    color: #22d3ee;
+    text-shadow:
+        0 0 5px rgba(34,211,238,.8),
+        0 0 15px rgba(34,211,238,.5),
+        0 0 30px rgba(34,211,238,.25);
+    margin-bottom: 4px;
 }
 
-.nc-main-title {
-    margin-top:6px;
-    font-size:18px;
-    font-weight:700;
-    letter-spacing:2px;
-    color:#22d3ee;
+.nc-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: #94a3b8;
 }
 
 .nc-sub {
