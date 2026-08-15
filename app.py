@@ -180,17 +180,21 @@ st.markdown(
 
 .nc-title {
     font-family: 'Orbitron', sans-serif;
-    font-size: 32px;
+    font-size: 38px;
+    line-height: 1.25;
     font-weight: 800;
     letter-spacing: 4px;
     color: #22d3ee;
+
     text-shadow:
         0 0 5px rgba(34,211,238,.8),
         0 0 15px rgba(34,211,238,.5),
         0 0 30px rgba(34,211,238,.25);
-    margin-bottom: 4px;
-}
 
+    margin-top: 5px;
+    margin-bottom: 6px;
+    padding: 5px 0;
+}
 .nc-sub {
     font-family: 'Inter', sans-serif;
     font-size: 10px;
