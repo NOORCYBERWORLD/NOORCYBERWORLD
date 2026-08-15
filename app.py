@@ -705,40 +705,7 @@ st.markdown(
 )
 
 
-# ============================================================
-# MONTH / YEAR
-# ============================================================
 
-c1, c2, c3, c4 = st.columns(4)
-
-with c1:
-    st.metric(
-        "TODAY COLLECTION",
-        f"₹ {today_gross:,}"
-    )
-
-with c2:
-    st.metric(
-        "TODAY CASH",
-        f"₹ {today_cash:,}"
-    )
-
-with c3:
-    st.metric(
-        "TODAY CREDIT",
-        f"₹ {today_credit:,}"
-    )
-
-with c4:
-    st.metric(
-        "TODAY NET PROFIT",
-        f"₹ {today_net:,}"
-    )
-
-
-# ============================================================
-# DATE SELECTOR
-# ============================================================
 
 st.markdown("---")
 
