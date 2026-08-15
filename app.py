@@ -41,9 +41,7 @@ def today_ist():
 # ============================================================
 
 WEB_APP_URL = (
-    "https://script.google.com/macros/s/"
-    "AKfycbwSipN_etRHmOKXczikdg1gwzBvksliKCLQ0NYIJX9BbCGcyalc8H14aMTo_mNAbytK"
-    "/exec"
+    "https://script.google.com/macros/s/AKfycbwSipN_etRHmOKXczikdg1gwzBvksliKCLQ0NYIJX9BbCGcyalc8H14aMTo_mNAbytK/exec"
 )
 
 
