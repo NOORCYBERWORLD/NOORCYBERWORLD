@@ -170,6 +170,152 @@ def post_api(payload):
         return False, str(e)
 
 # ============================================================
+# INLINE TABLE ACTIONS / EDIT DIALOG
+# ============================================================
+
+def row_table(df_rows, key_prefix="row"):
+    """Render compact professional table with Edit/Delete in the same row."""
+    if df_rows.empty:
+        return
+
+    headers = [
+        "DATE","CUSTOMER","MOBILE","SERVICE","AMOUNT",
+        "NET PROFIT","CASH","CREDIT","EXPIRY","EDIT","DELETE"
+    ]
+    widths = [0.9,1.15,1.25,2.15,0.8,0.9,0.8,0.8,0.9,0.42,0.48]
+
+    hc = st.columns(widths)
+    for i, h in enumerate(headers):
+        with hc[i]:
+            st.markdown(
+                f"<div class='nc-table-head'>{h}</div>",
+                unsafe_allow_html=True
+            )
+
+    for _, row in df_rows.iterrows():
+        rn = int(row["_row_number"])
+        cls = "nc-table-row credit-row" if float(row["credit"]) > 0 else "nc-table-row"
+
+        cols = st.columns(widths)
+        vals = [
+            str(row["created_at"]),
+            str(row["name"]),
+            str(row["mobile"]),
+            str(row["service"]),
+            f"₹ {float(row['amount']):,.0f}",
+            f"₹ {float(row['net_amount']):,.0f}",
+            f"₹ {float(row['cash']):,.0f}",
+            f"₹ {float(row['credit']):,.0f}",
+            str(row["expiry"])
+        ]
+
+        for i, val in enumerate(vals):
+            with cols[i]:
+                # Keep the records as a compact TABLE (not cards).
+                # Green = received cash / net profit, Red = pending credit.
+                value_cls = cls
+                if i in (5, 6):
+                    value_cls += " table-green"
+                elif i == 7:
+                    value_cls += " table-red"
+
+                st.markdown(
+                    f"<div class='{value_cls}' title='{val}'>{val}</div>",
+                    unsafe_allow_html=True
+                )
+
+        with cols[9]:
+            if st.button("✏️", key=f"{key_prefix}_edit_{rn}", help="Edit this entry"):
+                st.session_state.editing_row = row.to_dict()
+                try:
+                    st.session_state.selected_date = datetime.strptime(
+                        str(row["created_at"])[:10], "%Y-%m-%d"
+                    ).date()
+                except Exception:
+                    pass
+                st.session_state.last_saved_wa = None
+                st.rerun()
+
+        with cols[10]:
+            if st.button("🗑️", key=f"{key_prefix}_delete_{rn}", help="Delete this entry"):
+                st.session_state.confirm_delete = rn
+                st.rerun()
+
+
+@st.dialog("✏️ Edit Customer Entry")
+def edit_customer_dialog(row):
+    """Professional popup editor; save requires explicit YES confirmation."""
+    rn = int(row["_row_number"])
+
+    st.caption(f"Entry #{rn} • {row['created_at']}")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        mobile = st.text_input("Mobile Number *", value=str(row.get("mobile","")), key=f"dlg_mobile_{rn}")
+        name = st.text_input("Customer Name *", value=str(row.get("name","")), key=f"dlg_name_{rn}")
+        service = st.text_input("Service *", value=str(row.get("service","")), key=f"dlg_service_{rn}")
+    with c2:
+        amount = st.number_input("Total Fee / Gross Amount (₹)", min_value=0, step=10,
+                                 value=int(float(row.get("amount",0))), key=f"dlg_amount_{rn}")
+        net = st.number_input("Net Income / Profit (₹)", min_value=0, step=10,
+                              value=int(float(row.get("net_amount",0))), key=f"dlg_net_{rn}")
+        payment = st.radio(
+            "Payment Type",
+            ["💵 CASH", "🔴 CREDIT (UDHARI)"],
+            index=1 if float(row.get("credit",0)) > 0 else 0,
+            horizontal=True,
+            key=f"dlg_payment_{rn}"
+        )
+
+    if net > amount:
+        st.error("Net Profit cannot be greater than Total Fee.")
+        return
+
+    if "CREDIT" in payment:
+        cash = 0
+        credit = int(amount)
+    else:
+        cash = int(amount)
+        credit = 0
+
+    st.info(f"💵 Cash: ₹ {cash:,}  |  🔴 Credit: ₹ {credit:,}")
+
+    st.markdown("**Save changes?**")
+    yes, no = st.columns(2)
+
+    with yes:
+        if st.button("✅ YES, SAVE CHANGES", type="primary", use_container_width=True, key=f"dlg_save_{rn}"):
+            if not name.strip() or not mobile.strip() or not service.strip():
+                st.error("Name, mobile and service are required.")
+                return
+
+            ok, msg = post_api({
+                "action": "edit",
+                "row_number": rn,
+                "created_at": str(row["created_at"])[:10],
+                "name": name.strip(),
+                "mobile": mobile.strip(),
+                "service": service.strip(),
+                "amount": str(int(amount)),
+                "net_amount": str(int(net)),
+                "cash": str(cash),
+                "credit": str(credit),
+                "expiry": str(row.get("expiry","N/A"))
+            })
+            if ok:
+                get_records.clear()
+                st.session_state.editing_row = None
+                st.session_state.success_message = "Entry updated successfully."
+                st.rerun()
+            else:
+                st.error(msg)
+
+    with no:
+        if st.button("❌ NO, CANCEL", use_container_width=True, key=f"dlg_cancel_{rn}"):
+            st.session_state.editing_row = None
+            st.rerun()
+
+# ============================================================
 # STYLE + HEADER
 # ============================================================
 
@@ -238,6 +384,53 @@ div[data-testid="stMetric"]{
     border-radius:15px;padding:15px
 }
 .stButton>button{border-radius:9px;font-weight:700}
+.nc-table-head{
+    background:#111827;
+    border-bottom:1px solid rgba(34,211,238,.30);
+    color:#94a3b8;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.35px;
+    padding:7px 5px;
+    min-height:31px;
+    display:flex;
+    align-items:center;
+    white-space:nowrap;
+    overflow:hidden;
+}
+.nc-table-row{
+    background:rgba(15,23,42,.72);
+    border-bottom:1px solid rgba(148,163,184,.12);
+    color:#e2e8f0;
+    font-size:11px;
+    font-weight:600;
+    padding:7px 5px;
+    min-height:34px;
+    display:flex;
+    align-items:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+.credit-row{
+    color:#e2e8f0;
+    background:rgba(127,29,29,.08);
+}
+/* Column colours inside the table only — no separate cards. */
+.table-green{
+    color:#22c55e !important;
+    font-weight:800 !important;
+}
+.table-red{
+    color:#ef4444 !important;
+    font-weight:800 !important;
+}
+.nc-table-row:hover{background:rgba(30,41,59,.9)}
+.nc-table-wrap{
+    border:1px solid rgba(96,165,250,.18);
+    border-radius:10px;
+    overflow:hidden;
+}
 </style>
 
 <div class="nc-header">
@@ -356,48 +549,24 @@ with tab1:
     if day_df.empty:
         st.info("ℹ️ No entries recorded for this date yet.")
     else:
-        # Compact table: no giant cards in Records/Dashboard.
-        table = day_df.drop(columns=["_row_number"]).copy()
-        table.columns = [
-            "Date","Name","Mobile","Service",
-            "Amount","Net Profit","Cash","Credit","Expiry"
-        ]
-        for col in ["Amount","Net Profit","Cash","Credit"]:
-            table[col] = table[col].map(lambda x: f"₹ {float(x):,.0f}")
-        st.dataframe(table, use_container_width=True, hide_index=True)
+        st.markdown(
+            "<div class='nc-table-wrap'>",
+            unsafe_allow_html=True
+        )
+        row_table(day_df, "day")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("#### Entry Actions")
-        for _, row in day_df.iterrows():
-            rn = int(row["_row_number"])
-            cls = "nc-red" if float(row["credit"]) > 0 else "nc-green"
+    # Edit opens as a popup; no separate Edit/Delete list.
+    if st.session_state.editing_row is not None:
+        edit_customer_dialog(st.session_state.editing_row)
 
-            info, edit_col, del_col = st.columns([8,1,1])
-            with info:
-                st.markdown(
-                    f"""<div class="{cls}">
-                    <b>{row['name']}</b> • {row['mobile']} • {row['service']}
-                    &nbsp; | &nbsp; Amount ₹ {float(row['amount']):,.0f}
-                    &nbsp; | &nbsp; Cash ₹ {float(row['cash']):,.0f}
-                    &nbsp; | &nbsp; Credit ₹ {float(row['credit']):,.0f}
-                    </div>""",
-                    unsafe_allow_html=True
-                )
-            with edit_col:
-                if st.button("✏️", key=f"day_edit_{rn}"):
-                    st.session_state.editing_row = row.to_dict()
-                    st.rerun()
-            with del_col:
-                if st.button("🗑️", key=f"day_del_{rn}"):
-                    st.session_state.confirm_delete = rn
-                    st.rerun()
-
-    # Delete confirmation popup-style block
+    # Delete confirmation popup
     if st.session_state.confirm_delete:
-        rn = st.session_state.confirm_delete
-        st.warning("⚠️ Confirm deletion of this customer entry.")
-        y, no = st.columns(2)
-        with y:
-            if st.button("YES, DELETE", type="primary", use_container_width=True):
+        rn = int(st.session_state.confirm_delete)
+        st.warning(f"⚠️ Delete this entry? Google Sheet row {rn}")
+        yy, nn = st.columns(2)
+        with yy:
+            if st.button("✅ YES, DELETE", type="primary", use_container_width=True, key="day_confirm_yes"):
                 ok, msg = post_api({"action":"delete","row_number":rn})
                 if ok:
                     st.session_state.confirm_delete = None
@@ -406,24 +575,19 @@ with tab1:
                     st.rerun()
                 else:
                     st.error(msg)
-        with no:
-            if st.button("NO, CANCEL", use_container_width=True):
+        with nn:
+            if st.button("❌ NO, KEEP", use_container_width=True, key="day_confirm_no"):
                 st.session_state.confirm_delete = None
                 st.rerun()
 
     st.markdown("---")
 
     # ========================================================
-    # ADD / EDIT FORM
+    # ADD NEW CUSTOMER ENTRY
     # ========================================================
 
-    editing = st.session_state.editing_row is not None
-    old = st.session_state.editing_row or {}
-
     st.markdown(
-        "<div class='nc-section'>{}</div>".format(
-            "✏️ EDIT CUSTOMER ENTRY" if editing else "➕ ADD NEW CUSTOMER ENTRY"
-        ),
+        "<div class='nc-section'>➕ ADD NEW CUSTOMER ENTRY</div>",
         unsafe_allow_html=True
     )
 
@@ -432,31 +596,25 @@ with tab1:
     with left:
         mobile = st.text_input(
             "Mobile Number *",
-            value=str(old.get("mobile","")),
             key="mobile_field"
         ).strip()
 
-        # Auto-fill existing customer name directly into the Name box.
         auto_name = ""
-        if mobile and not editing and not df.empty:
+        if mobile and not df.empty:
             found = df[df["mobile"].astype(str).str.strip() == mobile]
             if not found.empty:
                 auto_name = str(found.iloc[-1]["name"]).strip()
 
         name = st.text_input(
             "Customer Name *",
-            value=str(old.get("name","")) if editing else auto_name,
-            key=f"name_field_{mobile}_{editing}"
+            value=auto_name,
+            key=f"name_field_{mobile}"
         ).strip()
 
         svcs = services()
-        old_service = str(old.get("service", svcs[0]))
-        idx = svcs.index(old_service) if old_service in svcs else svcs.index("Other")
-
         selected_service = st.selectbox(
             "Search / Select Service *",
             svcs,
-            index=idx,
             key="service_field"
         )
 
@@ -464,7 +622,6 @@ with tab1:
         if selected_service == "Other":
             custom_service = st.text_input(
                 "Custom Service Name *",
-                value=old_service if old_service not in svcs else "",
                 key="custom_service_field"
             ).strip()
 
@@ -473,7 +630,6 @@ with tab1:
             "Total Fee / Gross Amount (₹) *",
             min_value=0,
             step=10,
-            value=int(float(old.get("amount",0))),
             key="amount_field"
         )
 
@@ -481,17 +637,12 @@ with tab1:
             "Net Income / Profit (₹) *",
             min_value=0,
             step=10,
-            value=int(float(old.get("net_amount",0))),
             key="net_field"
         )
-
-        old_credit = float(old.get("credit",0))
-        pay_index = 1 if old_credit > 0 else 0
 
         payment = st.radio(
             "Payment Type *",
             ["💵 CASH", "🔴 CREDIT (UDHARI)"],
-            index=pay_index,
             horizontal=True,
             key="payment_field"
         )
@@ -507,11 +658,8 @@ with tab1:
             f"💵 Cash: ₹ {cash_value:,}   |   🔴 Credit: ₹ {credit_value:,}"
         )
 
-        expiry_exists = str(old.get("expiry","N/A")).strip() not in ["","N/A"]
-
         has_expiry = st.checkbox(
             "Requires Renewal / Validity?",
-            value=expiry_exists,
             key="has_expiry"
         )
 
@@ -530,73 +678,62 @@ with tab1:
             key="validity_duration"
         )
 
-    save, cancel = st.columns(2)
+    if st.button("⚡ SAVE ENTRY", type="primary", use_container_width=True):
+        if not name or not mobile:
+            st.error("Please enter Customer Name and Mobile Number.")
+            st.stop()
 
-    with save:
-        label = "💾 UPDATE ENTRY" if editing else "⚡ SAVE ENTRY"
+        if net_amount > amount:
+            st.error("Net Profit cannot be greater than Total Fee.")
+            st.stop()
 
-        if st.button(label, type="primary", use_container_width=True):
-            if not name or not mobile:
-                st.error("Please enter Customer Name and Mobile Number.")
+        final_service = selected_service
+        if selected_service == "Other":
+            if not custom_service:
+                st.error("Please enter Custom Service Name.")
                 st.stop()
+            final_service = custom_service
+            if final_service not in st.session_state.custom_services:
+                st.session_state.custom_services.append(final_service)
 
-            final_service = selected_service
-            if selected_service == "Other":
-                if not custom_service:
-                    st.error("Please enter Custom Service Name.")
-                    st.stop()
-                final_service = custom_service
-                if final_service not in st.session_state.custom_services:
-                    st.session_state.custom_services.append(final_service)
-
-            expiry = "N/A"
-            if has_expiry:
-                base = selected_date
-                if unit == "Days":
-                    exp = base + timedelta(days=int(duration))
-                elif unit == "Months":
-                    exp = base + relativedelta(months=int(duration))
-                else:
-                    exp = base + relativedelta(years=int(duration))
-                expiry = exp.strftime("%Y-%m-%d")
-
-            payload = {
-                "action": "edit" if editing else "add",
-                "created_at": selected_date_str,
-                "name": name,
-                "mobile": mobile,
-                "service": final_service,
-                "amount": str(int(amount)),
-                "net_amount": str(int(net_amount)),
-                "cash": str(cash_value),
-                "credit": str(credit_value),
-                "expiry": expiry
-            }
-
-            if editing:
-                payload["row_number"] = int(old["_row_number"])
-
-            ok, msg = post_api(payload)
-
-            if ok:
-                get_records.clear()
-                st.session_state.editing_row = None
-                st.session_state.last_saved_wa = (
-                    "https://wa.me/91" + mobile +
-                    "?text=" + quote(
-                        f"Dear {name}, Thank you for choosing NOOR CYBER WORLD "
-                        f"for {final_service}! Total Amount: Rs.{int(amount)}."
-                    )
-                )
-                st.session_state.success_message = "Entry saved successfully."
-                st.rerun()
+        expiry = "N/A"
+        if has_expiry:
+            base = selected_date
+            if unit == "Days":
+                exp = base + timedelta(days=int(duration))
+            elif unit == "Months":
+                exp = base + relativedelta(months=int(duration))
             else:
-                st.error(f"Failed to save: {msg}")
+                exp = base + relativedelta(years=int(duration))
+            expiry = exp.strftime("%Y-%m-%d")
 
-    with cancel:
-        if editing and st.button("❌ CANCEL EDIT", use_container_width=True):
-            st.session_state.editing_row = None
+        payload = {
+            "action": "add",
+            "created_at": selected_date_str,
+            "name": name,
+            "mobile": mobile,
+            "service": final_service,
+            "amount": str(int(amount)),
+            "net_amount": str(int(net_amount)),
+            "cash": str(cash_value),
+            "credit": str(credit_value),
+            "expiry": expiry
+        }
+
+        ok, msg = post_api(payload)
+        if ok:
+            get_records.clear()
+            st.session_state.last_saved_wa = (
+                "https://wa.me/91" + mobile +
+                "?text=" + quote(
+                    f"Dear {name}, Thank you for choosing NOOR CYBER WORLD "
+                    f"for {final_service}! Total Amount: Rs.{int(amount)}."
+                )
+            )
+            st.session_state.success_message = "Entry saved successfully."
             st.rerun()
+        else:
+            st.error(f"Failed to save: {msg}")
 
     if st.session_state.last_saved_wa:
         st.link_button(
@@ -902,103 +1039,35 @@ with tab5:
 
         st.caption(f"Showing {len(filtered)} records")
 
-        # Main records table - compact.
-        view = filtered.drop(columns=["_row_number"],errors="ignore").copy()
-        view.columns = [
-            "Date","Name","Mobile","Service",
-            "Amount","Net Profit","Cash","Credit","Expiry"
-        ]
-
-        for col in ["Amount","Net Profit","Cash","Credit"]:
-            view[col] = view[col].map(
-                lambda x: f"₹ {float(x):,.0f}"
-            )
-
-        st.dataframe(
-            view,
-            use_container_width=True,
-            hide_index=True,
-            height=520
+        # Compact records table with Edit/Delete buttons in the SAME ROW.
+        st.markdown(
+            "<div class='nc-table-wrap'>",
+            unsafe_allow_html=True
         )
+        row_table(filtered, "rec")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        # Actions are attached immediately below each record,
-        # not hidden in a dropdown.
-        st.markdown("#### ✏️ Edit / Delete")
+        if st.session_state.editing_row is not None:
+            edit_customer_dialog(st.session_state.editing_row)
 
-        for _,row in filtered.iterrows():
-            rn = int(row["_row_number"])
-            cls = "nc-red" if float(row["credit"]) > 0 else "nc-green"
-
-            info,edit_col,delete_col = st.columns([8,1,1])
-
-            with info:
-                st.markdown(
-                    f"""<div class="{cls}">
-                    <b>{row['name']}</b> • {row['mobile']} • {row['service']}
-                    &nbsp; | &nbsp; ₹ {float(row['amount']):,.0f}
-                    &nbsp; | &nbsp; Cash ₹ {float(row['cash']):,.0f}
-                    &nbsp; | &nbsp; Credit ₹ {float(row['credit']):,.0f}
-                    &nbsp; | &nbsp; {row['created_at']}
-                    </div>""",
-                    unsafe_allow_html=True
-                )
-
-            with edit_col:
-                if st.button("✏️", key=f"rec_edit_{rn}"):
-                    st.session_state.editing_row = row.to_dict()
-                    try:
-                        st.session_state.selected_date = datetime.strptime(
-                            str(row["created_at"])[:10],
-                            "%Y-%m-%d"
-                        ).date()
-                    except Exception:
-                        pass
-                    st.session_state.last_saved_wa = None
+        if st.session_state.confirm_delete:
+            rn = int(st.session_state.confirm_delete)
+            st.warning(f"⚠️ Delete this entry? Google Sheet row {rn}")
+            yy, nn = st.columns(2)
+            with yy:
+                if st.button("✅ YES, DELETE", type="primary", use_container_width=True, key="rec_confirm_yes"):
+                    ok, msg = post_api({"action":"delete","row_number":rn})
+                    if ok:
+                        st.session_state.confirm_delete = None
+                        get_records.clear()
+                        st.session_state.success_message = "Entry deleted successfully."
+                        st.rerun()
+                    else:
+                        st.error(msg)
+            with nn:
+                if st.button("❌ NO, KEEP", use_container_width=True, key="rec_confirm_no"):
+                    st.session_state.confirm_delete = None
                     st.rerun()
-
-            with delete_col:
-                if st.button("🗑️", key=f"rec_del_{rn}"):
-                    st.session_state.confirm_delete = rn
-                    st.rerun()
-
-# ============================================================
-# GLOBAL DELETE CONFIRMATION
-# ============================================================
-
-# If delete was triggered from Records tab, it is handled here too.
-# This section is intentionally at the end so it works after tab rendering.
-if st.session_state.confirm_delete:
-    rn = st.session_state.confirm_delete
-    st.warning(f"⚠️ Confirm delete for Google Sheet row {rn}.")
-    y,n = st.columns(2)
-
-    with y:
-        if st.button(
-            "YES, DELETE ENTRY",
-            key="global_yes_delete",
-            type="primary",
-            use_container_width=True
-        ):
-            ok,msg = post_api({
-                "action":"delete",
-                "row_number":rn
-            })
-            if ok:
-                st.session_state.confirm_delete = None
-                get_records.clear()
-                st.session_state.success_message = "Entry deleted successfully."
-                st.rerun()
-            else:
-                st.error(msg)
-
-    with n:
-        if st.button(
-            "NO, KEEP ENTRY",
-            key="global_no_delete",
-            use_container_width=True
-        ):
-            st.session_state.confirm_delete = None
-            st.rerun()
 
 # ============================================================
 # TOAST
