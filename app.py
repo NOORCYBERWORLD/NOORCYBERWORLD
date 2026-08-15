@@ -29,53 +29,6 @@ from reportlab.lib.styles import (
 from reportlab.lib import colors
 
 
-# ============================================================
-# NOOR CYBER WORLD — HEADER
-# ============================================================
-
-st.markdown(
-    f"""
-    <div class="nc-header">
-
-        <div class="nc-title">
-            NOOR CYBER WORLD
-        </div>
-
-        <div class="nc-main-title">
-            CUSTOMER MANAGEMENT SYSTEM
-        </div>
-
-        <div class="nc-sub">
-            DIGITAL SERVICE • CUSTOMER RECORD • SMART MANAGEMENT
-        </div>
-
-        <div class="nc-income-bar">
-
-            <span class="income-item">
-                📅 <b>TODAY NET INCOME:</b>
-                <span class="profit">₹ {day_net:,.0f}</span>
-            </span>
-
-            <span class="income-separator">|</span>
-
-            <span class="income-item">
-                🗓️ <b>MONTH NET INCOME:</b>
-                <span class="profit">₹ {month_net:,.0f}</span>
-            </span>
-
-            <span class="income-separator">|</span>
-
-            <span class="income-item">
-                📊 <b>YEAR NET INCOME:</b>
-                <span class="profit">₹ {year_net:,.0f}</span>
-            </span>
-
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 # ============================================================
 # GOOGLE APPS SCRIPT URL
