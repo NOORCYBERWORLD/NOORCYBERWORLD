@@ -17,11 +17,25 @@ from reportlab.lib import colors
 # PAGE CONFIG
 # ============================================================
 
-st.set_page_config(
-    page_title="NOOR CYBER WORLD",
-    page_icon="💻",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+st.markdown(
+    """
+    <div class="nc-header">
+
+        <div class="nc-title">
+            NOOR CYBER WORLD
+        </div>
+
+        <div class="nc-main-title">
+            CUSTOMER MANAGEMENT SYSTEM
+        </div>
+
+        <div class="nc-sub">
+            DIGITAL SERVICE • CUSTOMER RECORD • SMART MANAGEMENT
+        </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 
