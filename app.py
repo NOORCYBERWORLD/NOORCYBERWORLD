@@ -983,90 +983,98 @@ with tab1:
 
     left, right = st.columns(2)
 
-    # -----------------------------------------------
-    # LEFT
-    # -----------------------------------------------
+   # --------------------------------------------------------
+# LEFT — CUSTOMER DETAILS
+# --------------------------------------------------------
 
-    with left:
+with left:
 
-        mobile_input = st.text_input(
-            "Mobile Number *",
-            value=str(
-                edit_data.get(
-                    "mobile",
-                    ""
-                )
-            ),
-            key="input_mobile"
+    mobile_input = st.text_input(
+        "Mobile Number*",
+        value=edit_data.get("mobile", ""),
+        key="input_mobile_num"
+    )
+
+    clean_mobile = str(mobile_input).strip()
+
+    # ----------------------------------------------------
+    # AUTO FIND EXISTING CUSTOMER
+    # ----------------------------------------------------
+
+    auto_name = ""
+
+    if clean_mobile and not is_editing:
+
+        auto_name = mobile_to_name_map.get(
+            clean_mobile,
+            ""
         )
 
-        clean_mobile = mobile_input.strip()
+    # ----------------------------------------------------
+    # CUSTOMER NAME
+    # ----------------------------------------------------
 
-        auto_name = ""
+    default_name = (
+        edit_data.get("name", "")
+        if is_editing
+        else auto_name
+    )
 
-        if (
-            clean_mobile in mobile_to_name_map
-            and not is_editing
-        ):
+    name_input = st.text_input(
+        "Customer Name*",
+        value=default_name,
+        key=f"input_name_{clean_mobile}"
+    )
 
-            auto_name = mobile_to_name_map[
-                clean_mobile
-            ]
+    # ----------------------------------------------------
+    # SERVICE
+    # ----------------------------------------------------
 
-            st.success(
-                f"Existing Customer: {auto_name}"
-            )
+    curr_serv = edit_data.get(
+        "service",
+        SERVICES[0]
+    )
 
-        default_name = (
-            str(edit_data.get("name", ""))
-            if is_editing
-            else auto_name
+    if curr_serv in SERVICES:
+
+        default_index = SERVICES.index(
+            curr_serv
         )
 
-        name_input = st.text_input(
-            "Customer Name *",
-            value=default_name,
-            key="input_customer_name"
+    else:
+
+        default_index = SERVICES.index(
+            "Other"
         )
 
-        curr_serv = str(
-            edit_data.get(
-                "service",
-                SERVICES[0]
-            )
+    service_selected = st.selectbox(
+        "Search / Select Service*",
+        SERVICES,
+        index=default_index,
+        key="input_service"
+    )
+
+    # ----------------------------------------------------
+    # CUSTOM SERVICE
+    # ----------------------------------------------------
+
+    if service_selected == "Other":
+
+        custom_val = (
+            curr_serv
+            if curr_serv not in SERVICES
+            else ""
         )
 
-        if curr_serv in SERVICES:
-            service_index = SERVICES.index(
-                curr_serv
-            )
-        else:
-            service_index = SERVICES.index(
-                "Other"
-            )
-
-        service_selected = st.selectbox(
-            "Service *",
-            SERVICES,
-            index=service_index,
-            key="input_service"
+        custom_service_input = st.text_input(
+            "Custom Service Name*",
+            value=custom_val,
+            key="input_custom_service"
         )
 
-        if service_selected == "Other":
+    else:
 
-            custom_service_input = st.text_input(
-                "Custom Service Name *",
-                value=(
-                    curr_serv
-                    if curr_serv not in SERVICES
-                    else ""
-                ),
-                key="input_custom_service"
-            )
-
-        else:
-
-            custom_service_input = ""
+        custom_service_input = ""
 
     # -----------------------------------------------
     # RIGHT
