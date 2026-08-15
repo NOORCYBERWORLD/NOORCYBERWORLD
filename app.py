@@ -1143,9 +1143,9 @@ with tab1:
             <div class="dashboard-green">
 
             <b>PAYMENT SPLIT</b><b></b> 
+            
             💵 Cash:
             <b>₹ {calculated_cash:,}</b>
-            
             🔴 Credit:
             <b>₹ {calculated_credit:,}</b>
 
