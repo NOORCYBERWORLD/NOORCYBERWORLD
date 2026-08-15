@@ -191,7 +191,7 @@ st.markdown(
         0 0 15px rgba(34,211,238,.5),
         0 0 30px rgba(34,211,238,.25);
 
-    margin-top: 15px;
+    margin-top: 25px;
     margin-bottom: 6px;
     padding: 5px 0;
 }
