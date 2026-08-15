@@ -1142,7 +1142,7 @@ with tab1:
             f"""
             <div class="dashboard-green">
 
-            <b>PAYMENT SPLIT</b>
+            <b>PAYMENT SPLIT</b><b></b> 
             💵 Cash:
             <b>₹ {calculated_cash:,}</b>
             
