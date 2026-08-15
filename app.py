@@ -698,58 +698,7 @@ today_actual_profit = today_net - today_expenses
 
 st.markdown(
     f"""
-    <div class="dashboard-green">
-
-        <div class="dashboard-title">
-            📊 DAILY COLLECTION
-        </div>
-
-        <span class="small-muted">
-            Today • {today.strftime("%d-%m-%Y")}
-        </span>
-
-        <br><br>
-
-        💰 Total:
-        <b style="color:#22d3ee;">
-            ₹ {today_gross:,}
-        </b>
-
-        &nbsp;&nbsp; | &nbsp;&nbsp;
-
-        💵 Cash:
-        <b style="color:#22c55e;">
-            ₹ {today_cash:,}
-        </b>
-
-        &nbsp;&nbsp; | &nbsp;&nbsp;
-
-        🔴 Credit:
-        <b style="color:#ef4444;">
-            ₹ {today_credit:,}
-        </b>
-
-        &nbsp;&nbsp; | &nbsp;&nbsp;
-
-        📈 Net:
-        <b style="color:#22c55e;">
-            ₹ {today_net:,}
-        </b>
-
-        &nbsp;&nbsp; | &nbsp;&nbsp;
-
-        💸 Expense:
-        <b style="color:#ef4444;">
-            ₹ {today_expenses:,}
-        </b>
-
-        &nbsp;&nbsp; | &nbsp;&nbsp;
-
-        🟢 Actual:
-        <b style="color:#22c55e;">
-            ₹ {today_actual_profit:,}
-        </b>
-
+   
     </div>
     """,
     unsafe_allow_html=True
