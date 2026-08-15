@@ -216,7 +216,7 @@ div[data-testid="stMetricValue"] { font-weight:800; }
 # ============================================================
 # GOOGLE APPS SCRIPT URL
 # ============================================================
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbytGWMPZpnOWm6v2ibp7_nn0ZuvFb8VwWNpqBenI_gcuq_tH3w9RsYiF1zGLzfCDDgg/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwSipN_etRHmOKXczikdg1gwzBvksliKCLQ0NYIJX9BbCGcyalc8H14aMTo_mNAbytK/exec"
 
 # ============================================================
 # HELPER FUNCTIONS & API
