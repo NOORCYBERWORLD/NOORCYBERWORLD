@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 from urllib.parse import quote
 
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
@@ -16,8 +16,6 @@ from reportlab.lib import colors
 # ============================================================
 # PAGE CONFIG
 # ============================================================
-
-
 
 st.set_page_config(
     page_title="NOOR CYBER WORLD",
@@ -38,20 +36,26 @@ def today_ist():
     return datetime.now(IST).date()
 
 
+def today_str():
+    return today_ist().strftime("%Y-%m-%d")
+
+
 # ============================================================
 # GOOGLE APPS SCRIPT URL
 # ============================================================
 
 WEB_APP_URL = (
-    "https://script.google.com/macros/s/AKfycbwSipN_etRHmOKXczikdg1gwzBvksliKCLQ0NYIJX9BbCGcyalc8H14aMTo_mNAbytK/exec"
+    "https://script.google.com/macros/s/"
+    "AKfycbwSipN_etRHmOKXczikdg1gwzBvksliKCLQ0NYIJX9BbCGcyalc8H14aMTo_mNAbytK"
+    "/exec"
 )
 
 
 # ============================================================
-# CUSTOMER COLUMNS
+# COLUMNS
 # ============================================================
 
-CUSTOMER_COLUMNS = [
+COLUMNS = [
     "created_at",
     "name",
     "mobile",
@@ -66,7 +70,7 @@ CUSTOMER_COLUMNS = [
 
 
 # ============================================================
-# DEFAULT SERVICES
+# SERVICES
 # ============================================================
 
 DEFAULT_SERVICES = [
@@ -98,39 +102,45 @@ DEFAULT_SERVICES = [
     "Shop Act License",
     "Udyam Aadhaar / MSME Registration",
     "Voter ID Card Apply / Correction",
-    "Xerox / Color Printout / Lamination / Scanning",
+    "Xerox / Color Printout / Lamination / Scanning"
 ]
 
 
 if "custom_services" not in st.session_state:
     st.session_state.custom_services = []
 
-if "editing_row" not in st.session_state:
-    st.session_state.editing_row = None
 
 if "selected_date" not in st.session_state:
     st.session_state.selected_date = today_ist()
 
 
-def get_all_services():
+if "editing_customer" not in st.session_state:
+    st.session_state.editing_customer = None
 
-    services = DEFAULT_SERVICES + st.session_state.custom_services
 
-    services = sorted(
+if "last_saved_wa" not in st.session_state:
+    st.session_state.last_saved_wa = None
+
+
+def get_services():
+
+    all_services = (
+        DEFAULT_SERVICES
+        + st.session_state.custom_services
+    )
+
+    all_services = sorted(
         set(
-            str(x).strip()
-            for x in services
-            if str(x).strip()
+            x.strip()
+            for x in all_services
+            if x and x.strip()
         ),
         key=lambda x: x.lower()
     )
 
-    services.append("Other")
+    all_services.append("Other")
 
-    return services
-
-
-SERVICES = get_all_services()
+    return all_services
 
 
 # ============================================================
@@ -141,23 +151,25 @@ st.markdown(
     """
 <style>
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
 
 :root {
     --green:#22c55e;
     --red:#ef4444;
     --cyan:#22d3ee;
+    --blue:#38bdf8;
     --dark:#0f172a;
-    --border:rgba(148,163,184,.22);
 }
 
 .stApp {
     background:
         linear-gradient(
-            120deg,
-            rgba(2,6,23,.98),
-            rgba(15,23,42,.96)
-        );
+            115deg,
+            rgba(5,8,15,.97),
+            rgba(7,18,32,.92)
+        ),
+        url("https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=2400&q=80")
+        center/cover fixed no-repeat;
     color:#f8fafc;
     font-family:'Inter',sans-serif;
 }
@@ -168,142 +180,153 @@ st.markdown(
     padding-bottom:3rem;
 }
 
-/* HEADER */
-
 .nc-header {
-    width:100%;
     text-align:center;
     padding:12px 10px 18px;
-    margin-bottom:8px;
-    border-bottom:1px solid rgba(34,211,238,.18);
+    margin-bottom:5px;
 }
 
 .nc-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 38px;
-    line-height: 1.25;
-    font-weight: 800;
-    letter-spacing: 4px;
-    color: #22d3ee;
-
+    font-family:'Orbitron',Arial,sans-serif;
+    font-size:38px;
+    font-weight:800;
+    letter-spacing:4px;
+    line-height:1.25;
+    color:#ffffff;
     text-shadow:
-        0 0 5px rgba(34,211,238,.8),
-        0 0 15px rgba(34,211,238,.5),
-        0 0 30px rgba(34,211,238,.25);
-
-    margin-top: 25px;
-    margin-bottom: 6px;
-    padding: 5px 0;
+        0 0 8px rgba(34,211,238,.75),
+        0 0 22px rgba(34,211,238,.35);
+    margin:0;
 }
-.nc-sub {
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 2px;
-    color: #94a3b8;
+
+.nc-main-title {
+    font-family:'Orbitron',Arial,sans-serif;
+    font-size:20px;
+    font-weight:700;
+    letter-spacing:2px;
+    color:#22d3ee;
+    margin-top:4px;
 }
 
 .nc-sub {
-    margin-top:5px;
-    font-size:10px;
+    font-size:11px;
     letter-spacing:1.5px;
-    color:#94a3b8;
+    color:#cbd5e1;
+    margin-top:4px;
 }
-
-/* SECTION */
 
 .nc-section {
-    font-size:20px;
-    font-weight:800;
+    font-family:'Orbitron',sans-serif;
+    font-size:18px;
+    font-weight:700;
     color:#e2e8f0;
     margin:8px 0 14px;
 }
 
-/* METRICS */
-
 div[data-testid="stMetric"] {
-    background:rgba(15,23,42,.92);
-    border:1px solid rgba(148,163,184,.18);
-    border-radius:14px;
-    padding:14px 16px;
-    box-shadow:0 8px 25px rgba(0,0,0,.18);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(15,23,42,.95),
+            rgba(30,41,59,.82)
+        );
+    border:1px solid rgba(96,165,250,.25);
+    border-radius:16px;
+    padding:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
 }
 
 div[data-testid="stMetricLabel"] {
-    color:#94a3b8;
+    color:#cbd5e1;
 }
 
 div[data-testid="stMetricValue"] {
     font-weight:800;
 }
 
-/* GREEN CARD */
-
 .nc-card-green {
-    background:linear-gradient(
-        135deg,
-        rgba(20,83,45,.55),
-        rgba(15,23,42,.92)
-    );
+    background:
+        linear-gradient(
+            145deg,
+            rgba(22,101,52,.35),
+            rgba(15,23,42,.88)
+        );
     border:1px solid rgba(34,197,94,.45);
     border-left:5px solid #22c55e;
-    border-radius:10px;
+    border-radius:12px;
     padding:11px 14px;
-    margin:6px 0;
+    margin:5px 0;
 }
-
-/* RED CARD */
 
 .nc-card-red {
-    background:linear-gradient(
-        135deg,
-        rgba(127,29,29,.52),
-        rgba(15,23,42,.92)
-    );
+    background:
+        linear-gradient(
+            145deg,
+            rgba(153,27,27,.35),
+            rgba(15,23,42,.88)
+        );
     border:1px solid rgba(239,68,68,.45);
     border-left:5px solid #ef4444;
-    border-radius:10px;
+    border-radius:12px;
     padding:11px 14px;
-    margin:6px 0;
+    margin:5px 0;
 }
 
-/* DASHBOARD BOX */
-
-.dashboard-green {
-    background:rgba(20,83,45,.30);
-    border:1px solid rgba(34,197,94,.40);
+.nc-summary {
+    background:rgba(15,23,42,.92);
+    border:1px solid rgba(34,211,238,.28);
     border-radius:12px;
-    padding:14px;
-    margin-bottom:8px;
-}
-
-.dashboard-red {
-    background:rgba(127,29,29,.30);
-    border:1px solid rgba(239,68,68,.40);
-    border-radius:12px;
-    padding:14px;
-    margin-bottom:8px;
-}
-
-.dashboard-title {
-    font-size:16px;
-    font-weight:800;
-    margin-bottom:8px;
-}
-
-.small-muted {
-    color:#94a3b8;
+    padding:9px 14px;
+    text-align:right;
     font-size:12px;
+    line-height:1.7;
+}
+
+.nc-summary .value {
+    font-weight:800;
+    color:#22d3ee;
+}
+
+.nc-summary .profit {
+    font-weight:800;
+    color:#22c55e;
+}
+
+.nc-summary .credit {
+    font-weight:800;
+    color:#ef4444;
+}
+
+.expense-card {
+    background:
+        linear-gradient(
+            145deg,
+            rgba(127,29,29,.45),
+            rgba(15,23,42,.9)
+        );
+    border:1px solid rgba(239,68,68,.5);
+    border-left:5px solid #ef4444;
+    border-radius:10px;
+    padding:10px 14px;
+    margin:5px 0;
 }
 
 </style>
 
 <div class="nc-header">
-    <div class="nc-title">NOOR CYBER WORLD</div>
-    <div class="nc-main-title">CUSTOMERS MANAGEMENT SYSTEM</div>
+
+    <div class="nc-title">
+        NOOR CYBER WORLD
+    </div>
+
+    <div class="nc-main-title">
+        CUSTOMER MANAGEMENT SYSTEM
+    </div>
+
     <div class="nc-sub">
         DIGITAL SERVICE • CUSTOMER RECORD • SMART MANAGEMENT
     </div>
+
 </div>
 """,
     unsafe_allow_html=True
@@ -315,11 +338,11 @@ div[data-testid="stMetricValue"] {
 # ============================================================
 
 def empty_df():
-    return pd.DataFrame(columns=CUSTOMER_COLUMNS)
+    return pd.DataFrame(columns=COLUMNS)
 
 
 # ============================================================
-# CLEAN CUSTOMER DATA
+# CLEAN DATA
 # ============================================================
 
 def clean_df(df):
@@ -329,17 +352,30 @@ def clean_df(df):
 
     df = df.copy()
 
-    for col in CUSTOMER_COLUMNS:
+    for col in COLUMNS:
 
         if col not in df.columns:
 
-            if col in ["amount", "net_amount", "cash", "credit"]:
+            if col in [
+                "amount",
+                "net_amount",
+                "cash",
+                "credit"
+            ]:
                 df[col] = 0
+
             else:
                 df[col] = ""
 
-    # Text columns
-    for col in ["name", "mobile", "service", "expiry"]:
+    text_columns = [
+        "name",
+        "mobile",
+        "service",
+        "expiry"
+    ]
+
+    for col in text_columns:
+
         df[col] = (
             df[col]
             .fillna("")
@@ -347,8 +383,11 @@ def clean_df(df):
             .str.strip()
         )
 
-    # Date
-    raw_date = (
+    # --------------------------------------------------------
+    # DATE
+    # --------------------------------------------------------
+
+    raw = (
         df["created_at"]
         .fillna("")
         .astype(str)
@@ -356,33 +395,45 @@ def clean_df(df):
     )
 
     parsed = pd.to_datetime(
-        raw_date,
+        raw,
         errors="coerce"
     )
 
-    df["created_at"] = parsed.dt.strftime("%Y-%m-%d")
+    df["created_at"] = parsed.dt.strftime(
+        "%Y-%m-%d"
+    )
+
+    invalid = parsed.isna()
 
     df.loc[
-        parsed.isna(),
+        invalid,
         "created_at"
-    ] = raw_date[parsed.isna()]
+    ] = raw[invalid]
 
-    # Numeric
-    for col in ["amount", "net_amount", "cash", "credit"]:
+    # --------------------------------------------------------
+    # NUMBERS
+    # --------------------------------------------------------
+
+    for col in [
+        "amount",
+        "net_amount",
+        "cash",
+        "credit"
+    ]:
 
         df[col] = pd.to_numeric(
             df[col],
             errors="coerce"
         ).fillna(0)
 
-    return df[CUSTOMER_COLUMNS]
+    return df[COLUMNS]
 
 
 # ============================================================
-# FETCH CUSTOMER RECORDS
+# FETCH CUSTOMERS
 # ============================================================
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=3)
 def fetch_sheet_records():
 
     try:
@@ -391,7 +442,9 @@ def fetch_sheet_records():
             WEB_APP_URL,
             params={
                 "action": "get_records",
-                "t": int(datetime.now().timestamp())
+                "t": int(
+                    datetime.now(IST).timestamp()
+                )
             },
             timeout=20
         )
@@ -409,6 +462,7 @@ def fetch_sheet_records():
         )
 
     except Exception:
+
         return empty_df()
 
 
@@ -416,7 +470,7 @@ def fetch_sheet_records():
 # FETCH EXPENSES
 # ============================================================
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=3)
 def fetch_expenses():
 
     try:
@@ -425,7 +479,9 @@ def fetch_expenses():
             WEB_APP_URL,
             params={
                 "action": "get_expenses",
-                "t": int(datetime.now().timestamp())
+                "t": int(
+                    datetime.now(IST).timestamp()
+                )
             },
             timeout=20
         )
@@ -464,15 +520,8 @@ def fetch_expenses():
                 ]
             )
 
-        for col in [
-            "created_at",
-            "title",
-            "amount",
-            "_row_number"
-        ]:
-
-            if col not in df.columns:
-                df[col] = ""
+        if "_row_number" not in df.columns:
+            df["_row_number"] = 0
 
         df["created_at"] = (
             df["created_at"]
@@ -491,14 +540,7 @@ def fetch_expenses():
             errors="coerce"
         ).fillna(0)
 
-        return df[
-            [
-                "created_at",
-                "title",
-                "amount",
-                "_row_number"
-            ]
-        ]
+        return df
 
     except Exception:
 
@@ -529,16 +571,19 @@ def api_post(payload):
             timeout=20
         )
 
+        if response.status_code != 200:
+            return False, f"HTTP {response.status_code}"
+
         try:
 
-            data = response.json()
+            result = response.json()
 
             return (
-                bool(data.get("success")),
+                bool(result.get("success")),
                 str(
-                    data.get(
+                    result.get(
                         "message",
-                        data.get(
+                        result.get(
                             "error",
                             "Operation failed"
                         )
@@ -548,14 +593,21 @@ def api_post(payload):
 
         except Exception:
 
-            if response.status_code == 200:
-                return True, "Success"
-
-            return False, "Server error"
+            return False, "Invalid server response."
 
     except Exception as e:
 
         return False, str(e)
+
+
+# ============================================================
+# REFRESH
+# ============================================================
+
+def refresh_data():
+
+    fetch_sheet_records.clear()
+    fetch_expenses.clear()
 
 
 # ============================================================
@@ -567,160 +619,176 @@ expenses_df = fetch_expenses()
 
 
 # ============================================================
-# MOBILE → NAME
+# MOBILE → NAME MAP
 # ============================================================
 
-mobile_to_name_map = {}
+mobile_to_name = {}
 
 if not df_all.empty:
 
     for _, row in df_all.iterrows():
 
-        mobile = str(row["mobile"]).strip()
-        name = str(row["name"]).strip()
+        mobile = str(
+            row["mobile"]
+        ).strip()
+
+        name = str(
+            row["name"]
+        ).strip()
 
         if mobile and name:
-            mobile_to_name_map[mobile] = name
+            mobile_to_name[mobile] = name
 
 
 # ============================================================
-# DATE MASK HELPER
+# DATE MASKS
 # ============================================================
 
-def date_mask_for(df, selected_date):
+now = datetime.now(IST)
 
-    if df.empty:
-        return pd.Series(
-            dtype=bool,
-            index=df.index
-        )
+today_date = now.date()
+today_date_str = today_date.strftime("%Y-%m-%d")
+month_str = now.strftime("%Y-%m")
+year_str = now.strftime("%Y")
 
-    dates = pd.to_datetime(
-        df["created_at"],
-        errors="coerce"
-    )
-
-    return (
-        dates.dt.strftime("%Y-%m-%d")
-        == selected_date.strftime("%Y-%m-%d")
-    )
-
-
-# ============================================================
-# TOP STATISTICS
-# ============================================================
-
-today = today_ist()
-
-today_mask = date_mask_for(
-    df_all,
-    today
-)
-
-month_str = today.strftime("%Y-%m")
-year_str = today.strftime("%Y")
 
 if not df_all.empty:
 
-    dates = pd.to_datetime(
+    created = pd.to_datetime(
         df_all["created_at"],
         errors="coerce"
     )
 
+    day_mask = (
+        created.dt.strftime("%Y-%m-%d")
+        == today_date_str
+    )
+
     month_mask = (
-        dates.dt.strftime("%Y-%m")
+        created.dt.strftime("%Y-%m")
         == month_str
     )
 
     year_mask = (
-        dates.dt.strftime("%Y")
+        created.dt.strftime("%Y")
         == year_str
     )
 
 else:
 
+    day_mask = pd.Series(
+        dtype=bool
+    )
+
     month_mask = pd.Series(
-        dtype=bool,
-        index=df_all.index
+        dtype=bool
     )
 
     year_mask = pd.Series(
-        dtype=bool,
-        index=df_all.index
+        dtype=bool
     )
 
 
-def sum_col(mask, col):
-
-    if df_all.empty:
-        return 0
-
-    return int(
-        df_all.loc[
-            mask,
-            col
-        ].sum()
-    )
-
-
-today_gross = sum_col(today_mask, "amount")
-today_cash = sum_col(today_mask, "cash")
-today_credit = sum_col(today_mask, "credit")
-today_net = sum_col(today_mask, "net_amount")
-
-month_gross = sum_col(month_mask, "amount")
-month_cash = sum_col(month_mask, "cash")
-month_credit = sum_col(month_mask, "credit")
-month_net = sum_col(month_mask, "net_amount")
-
-year_gross = sum_col(year_mask, "amount")
-year_cash = sum_col(year_mask, "cash")
-year_credit = sum_col(year_mask, "credit")
-year_net = sum_col(year_mask, "net_amount")
-
-
 # ============================================================
-# TODAY EXPENSES
+# TOP SUMMARY
 # ============================================================
 
-today_expense_mask = date_mask_for(
-    expenses_df,
-    today
-)
+if not df_all.empty:
 
-today_expenses_df = (
-    expenses_df[today_expense_mask].copy()
-    if not expenses_df.empty
-    else expenses_df.copy()
-)
+    today_net = df_all.loc[
+        day_mask,
+        "net_amount"
+    ].sum()
 
-today_expenses = int(
-    today_expenses_df["amount"].sum()
-    if not today_expenses_df.empty
-    else 0
-)
+    month_net = df_all.loc[
+        month_mask,
+        "net_amount"
+    ].sum()
 
-today_actual_profit = today_net - today_expenses
+    year_net = df_all.loc[
+        year_mask,
+        "net_amount"
+    ].sum()
 
+    today_cash = df_all.loc[
+        day_mask,
+        "cash"
+    ].sum()
 
-# ============================================================
-# TOP DAILY COLLECTION
-# ============================================================
+    today_credit = df_all.loc[
+        day_mask,
+        "credit"
+    ].sum()
+
+else:
+
+    today_net = 0
+    month_net = 0
+    year_net = 0
+    today_cash = 0
+    today_credit = 0
+
 
 st.markdown(
     f"""
-   
-    </div>
-    """,
+<div class="nc-summary">
+
+    <b>📅 TODAY NET INCOME:</b>
+    <span class="profit">₹ {today_net:,.0f}</span>
+    &nbsp;&nbsp; | &nbsp;&nbsp;
+
+    <b>🗓️ MONTH NET INCOME:</b>
+    <span class="profit">₹ {month_net:,.0f}</span>
+    &nbsp;&nbsp; | &nbsp;&nbsp;
+
+    <b>📊 YEAR NET INCOME:</b>
+    <span class="profit">₹ {year_net:,.0f}</span>
+
+</div>
+""",
     unsafe_allow_html=True
 )
 
 
+# ============================================================
+# SELECTED DAY DATA
+# ============================================================
+
+selected_date_str = (
+    st.session_state.selected_date.strftime(
+        "%Y-%m-%d"
+    )
+)
+
+if not df_all.empty:
+
+    selected_dates = pd.to_datetime(
+        df_all["created_at"],
+        errors="coerce"
+    )
+
+    selected_mask = (
+        selected_dates.dt.strftime("%Y-%m-%d")
+        == selected_date_str
+    )
+
+    day_df = df_all[
+        selected_mask
+    ].copy()
+
+else:
+
+    day_df = empty_df()
 
 
-st.markdown("---")
+# ============================================================
+# DATE NAVIGATION
+# ============================================================
 
-p_col, d_col, n_col = st.columns([1, 4, 1])
+p_col, d_col, n_col = st.columns(
+    [1, 4, 1]
+)
+
 
 with p_col:
 
@@ -729,7 +797,10 @@ with p_col:
         use_container_width=True
     ):
 
-        st.session_state.selected_date -= timedelta(days=1)
+        st.session_state.selected_date -= timedelta(
+            days=1
+        )
+
         st.rerun()
 
 
@@ -744,6 +815,7 @@ with d_col:
     if picked != st.session_state.selected_date:
 
         st.session_state.selected_date = picked
+
         st.rerun()
 
 
@@ -754,165 +826,109 @@ with n_col:
         use_container_width=True
     ):
 
-        st.session_state.selected_date += timedelta(days=1)
+        st.session_state.selected_date += timedelta(
+            days=1
+        )
+
         st.rerun()
-
-
-selected_date = st.session_state.selected_date
-selected_date_str = selected_date.strftime("%Y-%m-%d")
-
-
-day_mask = date_mask_for(
-    df_all,
-    selected_date
-)
-
-day_df = (
-    df_all[day_mask].copy()
-    if not df_all.empty
-    else empty_df()
-)
-
-selected_expense_mask = date_mask_for(
-    expenses_df,
-    selected_date
-)
-
-selected_expenses_df = (
-    expenses_df[selected_expense_mask].copy()
-    if not expenses_df.empty
-    else expenses_df.copy()
-)
 
 
 # ============================================================
 # TABS
 # ============================================================
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 TODAY'S ENTRIES",
-    "🔴 CREDIT COLLECTION",
-    "🔔 RENEWAL ALERTS",
-    "💸 SHOP EXPENSES",
-    "📂 RECORDS & SEARCH"
-])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    [
+        "📊 TODAY'S ENTRIES & ADD ENTRY",
+        "🔴 CREDIT COLLECTION",
+        "🔔 RENEWAL ALERTS",
+        "💸 SHOP EXPENSES & PROFIT",
+        "📂 RECORDS & SEARCH"
+    ]
+)
 
 
 # ============================================================
-# TAB 1 — TODAY'S ENTRIES
-# ============================================================
-# ============================================================
-# SELECTED DAY DATA
+# TAB 1
 # ============================================================
 
-selected_date = st.session_state.selected_date
+with tab1:
 
-if not df_all.empty:
-
-    temp_dates = pd.to_datetime(
-        df_all["created_at"],
-        errors="coerce"
-    )
-
-    date_mask = (
-        temp_dates.dt.date == selected_date
-    )
-
-    day_df = df_all.loc[
-        date_mask
-    ].copy()
-
-else:
-
-    day_df = empty_df()
-
-
-# ============================================================
-# DAY SUMMARY
-# ============================================================
-
-if day_df.empty:
-
-    total_gross = 0
-    total_net = 0
-    cash_sum = 0
-    credit_sum = 0
-
-else:
-
-    total_gross = int(
-        pd.to_numeric(
-            day_df["amount"],
-            errors="coerce"
-        ).fillna(0).sum()
-    )
-
-    total_net = int(
-        pd.to_numeric(
-            day_df["net_amount"],
-            errors="coerce"
-        ).fillna(0).sum()
-    )
-
-    cash_sum = int(
-        pd.to_numeric(
-            day_df["cash"],
-            errors="coerce"
-        ).fillna(0).sum()
-    )
-
-    credit_sum = int(
-        pd.to_numeric(
-            day_df["credit"],
-            errors="coerce"
-        ).fillna(0).sum()
+    st.markdown(
+        f"""
+        <div class="nc-section">
+            📋 Entries for
+            {st.session_state.selected_date.strftime('%d-%m-%Y')}
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
-# ============================================================
-# SUMMARY CARDS
-# ============================================================
+    # --------------------------------------------------------
+    # DAY SUMMARY
+    # --------------------------------------------------------
 
-m1, m2, m3, m4 = st.columns(4)
+    if day_df.empty:
 
-with m1:
-    st.metric(
-        "💰 TOTAL COLLECTION",
+        total_gross = 0
+        total_net = 0
+        cash_sum = 0
+        credit_sum = 0
+
+    else:
+
+        total_gross = int(
+            day_df["amount"].sum()
+        )
+
+        total_net = int(
+            day_df["net_amount"].sum()
+        )
+
+        cash_sum = int(
+            day_df["cash"].sum()
+        )
+
+        credit_sum = int(
+            day_df["credit"].sum()
+        )
+
+
+    m1, m2, m3, m4 = st.columns(4)
+
+    m1.metric(
+        "TOTAL COLLECTION",
         f"₹ {total_gross:,}"
     )
 
-with m2:
-    st.metric(
-        "💵 CASH RECEIVED",
+    m2.metric(
+        "CASH RECEIVED",
         f"₹ {cash_sum:,}"
     )
 
-with m3:
-    st.metric(
-        "🔴 PENDING CREDIT",
+    m3.metric(
+        "PENDING CREDIT",
         f"₹ {credit_sum:,}"
     )
 
-with m4:
-    st.metric(
-        "📈 NET PROFIT",
+    m4.metric(
+        "NET PROFIT",
         f"₹ {total_net:,}"
     )
 
-st.markdown("---")
 
-    # -----------------------------------------------
-    # TODAY'S CUSTOMER ENTRIES
-    # -----------------------------------------------
+    st.markdown("---")
 
-    st.markdown(
-        "### 🟢 Today's Entries"
-    )
+
+    # --------------------------------------------------------
+    # TODAY / SELECTED DATE ENTRIES
+    # --------------------------------------------------------
 
     if day_df.empty:
 
         st.info(
-            "No customer entries for this date."
+            "ℹ️ No entries recorded for this date."
         )
 
     else:
@@ -936,8 +952,8 @@ st.markdown("---")
             "Customer",
             "Mobile",
             "Service",
-            "Total",
-            "Net",
+            "Amount",
+            "Net Profit",
             "Cash",
             "Credit",
             "Expiry"
@@ -948,226 +964,192 @@ st.markdown("---")
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Total": st.column_config.NumberColumn(
+                "Amount": st.column_config.NumberColumn(
+                    "Amount",
                     format="₹ %d"
                 ),
-                "Net": st.column_config.NumberColumn(
+                "Net Profit": st.column_config.NumberColumn(
+                    "Net Profit",
                     format="₹ %d"
                 ),
                 "Cash": st.column_config.NumberColumn(
+                    "Cash",
                     format="₹ %d"
                 ),
                 "Credit": st.column_config.NumberColumn(
+                    "Credit",
                     format="₹ %d"
                 )
             }
         )
 
-    # -----------------------------------------------
-    # TODAY'S EXPENSES
-    # -----------------------------------------------
 
     st.markdown("---")
 
-    st.markdown(
-        "### 🔴 Today's Expenses"
-    )
 
-    if selected_expenses_df.empty:
-
-        st.info(
-            "No expenses for this date."
-        )
-
-    else:
-
-        expense_display = selected_expenses_df[
-            [
-                "created_at",
-                "title",
-                "amount"
-            ]
-        ].copy()
-
-        expense_display.columns = [
-            "Date",
-            "Expense",
-            "Amount"
-        ]
-
-        st.dataframe(
-            expense_display,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Amount": st.column_config.NumberColumn(
-                    format="₹ %d"
-                )
-            }
-        )
-
-        selected_total_expense = int(
-            selected_expenses_df["amount"].sum()
-        )
-
-        st.error(
-            f"🔴 Total Expenses: ₹ {selected_total_expense:,}"
-        )
-
-    # -----------------------------------------------
-    # ADD / EDIT ENTRY
-    # -----------------------------------------------
-
-    st.markdown("---")
+    # ========================================================
+    # ADD / EDIT CUSTOMER
+    # ========================================================
 
     is_editing = (
-        st.session_state.editing_row is not None
+        st.session_state.editing_customer
+        is not None
     )
 
     st.markdown(
         f"""
         <div class="nc-section">
-            {"✏️ EDIT CUSTOMER ENTRY" if is_editing else "➕ ADD NEW CUSTOMER ENTRY"}
+            {
+                "✏️ EDIT CUSTOMER ENTRY"
+                if is_editing
+                else "➕ ADD NEW CUSTOMER ENTRY"
+            }
         </div>
         """,
         unsafe_allow_html=True
     )
 
+
     edit_data = (
-        st.session_state.editing_row
+        st.session_state.editing_customer
         or {}
     )
 
+
     left, right = st.columns(2)
 
-   # --------------------------------------------------------
-# LEFT — CUSTOMER DETAILS
-# --------------------------------------------------------
 
-with left:
+    # --------------------------------------------------------
+    # LEFT
+    # --------------------------------------------------------
 
-    mobile_input = st.text_input(
-        "Mobile Number*",
-        value=edit_data.get("mobile", ""),
-        key="input_mobile_num"
-    )
+    with left:
 
-    clean_mobile = str(mobile_input).strip()
+        mobile_input = st.text_input(
+            "Mobile Number *",
+            value=str(
+                edit_data.get(
+                    "mobile",
+                    ""
+                )
+            ),
+            key="mobile_input"
+        ).strip()
 
-    # ----------------------------------------------------
-    # AUTO FIND EXISTING CUSTOMER
-    # ----------------------------------------------------
 
-    auto_name = ""
+        # ----------------------------------------------------
+        # AUTO CUSTOMER NAME
+        # ----------------------------------------------------
 
-    if clean_mobile and not is_editing:
-
-        auto_name = mobile_to_name_map.get(
-            clean_mobile,
+        auto_name = mobile_to_name.get(
+            mobile_input,
             ""
         )
 
-    # ----------------------------------------------------
-    # CUSTOMER NAME
-    # ----------------------------------------------------
 
-    default_name = (
-        edit_data.get("name", "")
-        if is_editing
-        else auto_name
-    )
+        if is_editing:
 
-    name_input = st.text_input(
-        "Customer Name*",
-        value=default_name,
-        key=f"input_name_{clean_mobile}"
-    )
+            default_name = str(
+                edit_data.get(
+                    "name",
+                    ""
+                )
+            )
 
-    # ----------------------------------------------------
-    # SERVICE
-    # ----------------------------------------------------
+        else:
 
-    curr_serv = edit_data.get(
-        "service",
-        SERVICES[0]
-    )
+            default_name = auto_name
 
-    if curr_serv in SERVICES:
 
-        default_index = SERVICES.index(
-            curr_serv
+        name_input = st.text_input(
+            "Customer Name *",
+            value=default_name,
+            key=f"name_input_{mobile_input}_{is_editing}"
         )
 
-    else:
 
-        default_index = SERVICES.index(
-            "Other"
+        services = get_services()
+
+
+        current_service = str(
+            edit_data.get(
+                "service",
+                services[0]
+            )
         )
 
-    service_selected = st.selectbox(
-        "Search / Select Service*",
-        SERVICES,
-        index=default_index,
-        key="input_service"
-    )
 
-    # ----------------------------------------------------
-    # CUSTOM SERVICE
-    # ----------------------------------------------------
+        if current_service in services:
 
-    if service_selected == "Other":
+            service_index = services.index(
+                current_service
+            )
 
-        custom_val = (
-            curr_serv
-            if curr_serv not in SERVICES
-            else ""
+        else:
+
+            service_index = services.index(
+                "Other"
+            )
+
+
+        service_selected = st.selectbox(
+            "Search / Select Service *",
+            services,
+            index=service_index,
+            key="service_select"
         )
 
-        custom_service_input = st.text_input(
-            "Custom Service Name*",
-            value=custom_val,
-            key="input_custom_service"
-        )
 
-    else:
+        if service_selected == "Other":
 
-        custom_service_input = ""
+            custom_service = st.text_input(
+                "Custom Service Name *",
+                value=(
+                    current_service
+                    if current_service not in services
+                    else ""
+                ),
+                key="custom_service"
+            )
 
-    # -----------------------------------------------
+        else:
+
+            custom_service = ""
+
+
+    # --------------------------------------------------------
     # RIGHT
-    # -----------------------------------------------
+    # --------------------------------------------------------
 
     with right:
 
         amount = st.number_input(
-            "Total Fee / Gross Amount (₹) *",
+            "Total Fee / Amount (₹) *",
             min_value=0,
             step=10,
             value=int(
-                float(
-                    edit_data.get(
-                        "amount",
-                        0
-                    )
+                edit_data.get(
+                    "amount",
+                    0
                 )
             ),
-            key="input_amount"
+            key="amount_input"
         )
 
+
         net_amount = st.number_input(
-            "Net Income / Profit (₹) *",
+            "Net Profit (₹) *",
             min_value=0,
             step=10,
             value=int(
-                float(
-                    edit_data.get(
-                        "net_amount",
-                        0
-                    )
+                edit_data.get(
+                    "net_amount",
+                    0
                 )
             ),
-            key="input_net"
+            key="net_amount_input"
         )
+
 
         existing_credit = float(
             edit_data.get(
@@ -1176,24 +1158,29 @@ with left:
             )
         )
 
-        default_payment_index = (
-            1
-            if existing_credit > 0
-            else 0
-        )
+
+        if is_editing and existing_credit > 0:
+
+            payment_index = 1
+
+        else:
+
+            payment_index = 0
+
 
         payment_choice = st.radio(
             "Payment Type *",
             [
-                "💵 Cash",
-                "🔴 Credit"
+                "💵 CASH",
+                "🔴 CREDIT / UDHARI"
             ],
-            index=default_payment_index,
+            index=payment_index,
             horizontal=True,
-            key="input_payment"
+            key="payment_choice"
         )
 
-        if payment_choice == "🔴 Credit":
+
+        if "CREDIT" in payment_choice:
 
             calculated_cash = 0
             calculated_credit = int(amount)
@@ -1203,39 +1190,35 @@ with left:
             calculated_cash = int(amount)
             calculated_credit = 0
 
-        st.markdown(
+
+        st.info(
             f"""
-            <div class="dashboard-green">
+**PAYMENT SPLIT**
 
-            <b>PAYMENT SPLIT</b><b></b> 
-            
-            💵 Cash:
-            <b>₹ {calculated_cash:,}</b>
-            🔴 Credit:
-            <b>₹ {calculated_credit:,}</b>
+💵 Cash: ₹ {calculated_cash:,}
 
-            </div>
-            """,
-            unsafe_allow_html=True
+🔴 Credit: ₹ {calculated_credit:,}
+"""
         )
+
 
         existing_expiry = str(
             edit_data.get(
                 "expiry",
                 "N/A"
             )
-        )
+        ).strip()
+
 
         has_expiry = st.checkbox(
             "Requires Renewal / Validity?",
             value=(
-                existing_expiry not in [
-                    "",
-                    "N/A"
-                ]
+                existing_expiry
+                not in ["", "N/A"]
             ),
-            key="input_has_expiry"
+            key="has_expiry"
         )
+
 
         validity_unit = st.selectbox(
             "Validity Unit",
@@ -1245,22 +1228,25 @@ with left:
                 "Years"
             ],
             index=1,
-            key="input_validity_unit"
+            key="validity_unit"
         )
+
 
         validity_value = st.number_input(
             "Validity Duration",
             min_value=1,
             value=1,
             step=1,
-            key="input_validity_value"
+            key="validity_value"
         )
 
-    # -----------------------------------------------
-    # SAVE / CANCEL
-    # -----------------------------------------------
+
+    # --------------------------------------------------------
+    # SAVE / UPDATE
+    # --------------------------------------------------------
 
     save_col, cancel_col = st.columns(2)
+
 
     with save_col:
 
@@ -1270,39 +1256,61 @@ with left:
             else "⚡ SAVE ENTRY"
         )
 
+
         if st.button(
             save_label,
             type="primary",
             use_container_width=True
         ):
 
-            if not name_input.strip():
+            final_name = name_input.strip()
+            final_mobile = mobile_input.strip()
+
+
+            if not final_name or not final_mobile:
+
                 st.error(
-                    "Please enter customer name."
+                    "Customer Name आणि Mobile Number आवश्यक आहेत."
                 )
+
                 st.stop()
 
-            if not mobile_input.strip():
+
+            if amount <= 0:
+
                 st.error(
-                    "Please enter mobile number."
+                    "Amount ₹0 पेक्षा जास्त असावा."
                 )
+
                 st.stop()
 
+
+            if net_amount < 0:
+
+                st.error(
+                    "Net Profit invalid आहे."
+                )
+
+                st.stop()
+
+
+            # ------------------------------------------------
             # SERVICE
-            final_service = service_selected
+            # ------------------------------------------------
 
             if service_selected == "Other":
 
-                if not custom_service_input.strip():
+                if not custom_service.strip():
 
                     st.error(
-                        "Please enter custom service name."
+                        "Custom Service Name द्या."
                     )
+
                     st.stop()
 
-                final_service = (
-                    custom_service_input.strip()
-                )
+
+                final_service = custom_service.strip()
+
 
                 if (
                     final_service
@@ -1313,12 +1321,24 @@ with left:
                         final_service
                     )
 
+            else:
+
+                final_service = service_selected
+
+
+            # ------------------------------------------------
             # EXPIRY
+            # ------------------------------------------------
+
             expiry = "N/A"
+
 
             if has_expiry:
 
-                base_date = selected_date
+                base_date = (
+                    st.session_state.selected_date
+                )
+
 
                 if validity_unit == "Days":
 
@@ -1353,12 +1373,17 @@ with left:
                         )
                     )
 
+
                 expiry = expiry_date.strftime(
                     "%Y-%m-%d"
                 )
 
+
+            # ------------------------------------------------
             # PAYMENT
-            if payment_choice == "🔴 Credit":
+            # ------------------------------------------------
+
+            if "CREDIT" in payment_choice:
 
                 final_cash = 0
                 final_credit = int(amount)
@@ -1368,38 +1393,37 @@ with left:
                 final_cash = int(amount)
                 final_credit = 0
 
+
+            # ------------------------------------------------
             # PAYLOAD
+            # ------------------------------------------------
+
+            action = (
+                "edit"
+                if is_editing
+                else "add"
+            )
+
+
             payload = {
 
-                "action": (
-                    "edit"
-                    if is_editing
-                    else "add"
-                ),
+                "action": action,
 
                 "created_at": selected_date_str,
 
-                "name": name_input.strip(),
+                "name": final_name,
 
-                "mobile": mobile_input.strip(),
+                "mobile": final_mobile,
 
                 "service": final_service,
 
-                "amount": str(
-                    int(amount)
-                ),
+                "amount": int(amount),
 
-                "net_amount": str(
-                    int(net_amount)
-                ),
+                "net_amount": int(net_amount),
 
-                "cash": str(
-                    final_cash
-                ),
+                "cash": final_cash,
 
-                "credit": str(
-                    final_credit
-                ),
+                "credit": final_credit,
 
                 "expiry": expiry,
 
@@ -1411,36 +1435,44 @@ with left:
                 )
             }
 
+
             with st.spinner(
                 "Saving..."
             ):
 
-                ok, msg = api_post(
+                ok, message = api_post(
                     payload
                 )
 
+
             if ok:
 
-                st.session_state.editing_row = None
+                st.session_state.editing_customer = None
 
-                fetch_sheet_records.clear()
-                fetch_expenses.clear()
+                refresh_data()
 
-                st.session_state.success_message = (
-                    "Entry saved successfully!"
+                thank_message = (
+                    f"Dear {final_name}, "
+                    f"Thank you for choosing "
+                    f"NOOR CYBER WORLD for "
+                    f"{final_service}! "
+                    f"Total Amount: Rs.{int(amount)}. "
+                    f"We are happy to serve you."
                 )
+
 
                 st.session_state.last_saved_wa = (
                     "https://wa.me/91"
-                    + mobile_input.strip()
+                    + final_mobile
                     + "?text="
                     + quote(
-                        f"Dear {name_input.strip()}, "
-                        f"Thank you for choosing NOOR CYBER WORLD "
-                        f"for {final_service}! "
-                        f"Total Amount: Rs.{int(amount)}. "
-                        f"We are happy to serve you."
+                        thank_message
                     )
+                )
+
+
+                st.success(
+                    "✅ Entry Saved Successfully!"
                 )
 
                 st.rerun()
@@ -1448,8 +1480,9 @@ with left:
             else:
 
                 st.error(
-                    f"Failed: {msg}"
+                    f"Save failed: {message}"
                 )
+
 
     with cancel_col:
 
@@ -1460,88 +1493,39 @@ with left:
                 use_container_width=True
             ):
 
-                st.session_state.editing_row = None
+                st.session_state.editing_customer = None
+
                 st.rerun()
 
-    # -----------------------------------------------
-    # EDIT / DELETE TABLE
-    # -----------------------------------------------
 
-    if not day_df.empty:
+    # --------------------------------------------------------
+    # WHATSAPP
+    # --------------------------------------------------------
 
-        st.markdown("---")
-        st.markdown("### ⚙️ Manage Today's Entries")
+    if st.session_state.last_saved_wa:
 
-        for _, row in day_df.iterrows():
-
-            ec1, ec2, ec3, ec4 = st.columns(
-                [3, 3, 1, 1]
-            )
-
-            with ec1:
-                st.write(
-                    f"**{row['name']}**"
-                )
-
-            with ec2:
-                st.write(
-                    str(row["service"])
-                )
-
-            with ec3:
-
-                if st.button(
-                    "✏️",
-                    key=f"edit_today_{row['_row_number']}",
-                    help="Edit"
-                ):
-
-                    st.session_state.editing_row = (
-                        row.to_dict()
-                    )
-
-                    st.rerun()
-
-            with ec4:
-
-                if st.button(
-                    "🗑️",
-                    key=f"delete_today_{row['_row_number']}",
-                    help="Delete"
-                ):
-
-                    ok, msg = api_post({
-                        "action": "delete",
-                        "row_number": int(
-                            row["_row_number"]
-                        )
-                    })
-
-                    if ok:
-
-                        fetch_sheet_records.clear()
-
-                        st.success(
-                            "Deleted."
-                        )
-
-                        st.rerun()
-
-                    else:
-
-                        st.error(msg)
+        st.link_button(
+            "💬 SEND THANK YOU WHATSAPP",
+            st.session_state.last_saved_wa,
+            use_container_width=True
+        )
 
 
 # ============================================================
-# TAB 2 — CREDIT COLLECTION
+# TAB 2 — CREDIT
 # ============================================================
 
 with tab2:
 
     st.markdown(
-        "<div class='nc-section'>🔴 PENDING CREDIT / UDHARI</div>",
+        """
+        <div class="nc-section">
+            🔴 PENDING CREDIT / UDHARI COLLECTION
+        </div>
+        """,
         unsafe_allow_html=True
     )
+
 
     if df_all.empty:
 
@@ -1553,6 +1537,7 @@ with tab2:
             df_all["credit"] > 0
         ].copy()
 
+
     if credit_df.empty:
 
         st.success(
@@ -1561,68 +1546,50 @@ with tab2:
 
     else:
 
-        total_pending = int(
+        pending_total = int(
             credit_df["credit"].sum()
         )
 
+
         st.error(
-            f"⚠️ TOTAL PENDING CREDIT: ₹ {total_pending:,}"
+            f"⚠️ TOTAL PENDING CREDIT: ₹ {pending_total:,}"
         )
 
-        st.dataframe(
-            credit_df[
-                [
-                    "created_at",
-                    "name",
-                    "mobile",
-                    "service",
-                    "credit"
-                ]
-            ].rename(
-                columns={
-                    "created_at": "Date",
-                    "name": "Customer",
-                    "mobile": "Mobile",
-                    "service": "Service",
-                    "credit": "Pending Credit"
-                }
-            ),
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Pending Credit":
-                    st.column_config.NumberColumn(
-                        format="₹ %d"
-                    )
-            }
-        )
 
         st.markdown("---")
 
-        for _, row in credit_df.iterrows():
 
-            c1, c2, c3 = st.columns(
+        for idx, row in credit_df.iterrows():
+
+            info, reminder, paid = st.columns(
                 [5, 2, 2]
             )
 
-            with c1:
+
+            with info:
 
                 st.markdown(
                     f"""
                     <div class="nc-card-red">
 
                     <b>🔴 {row['name']}</b>
-                    &nbsp; ({row['mobile']})
+                    ({row['mobile']})
 
                     <br>
 
-                    {row['service']}
+                    Service:
+                    <b>{row['service']}</b>
 
                     <br>
 
-                    Pending:
-                    <b style="color:#ef4444;">
-                    ₹ {int(row['credit']):,}
+                    Date:
+                    {row['created_at']}
+
+                    <br>
+
+                    Pending Credit:
+                    <b style="font-size:18px;color:#ef4444;">
+                    ₹ {float(row['credit']):,.0f}
                     </b>
 
                     </div>
@@ -1630,9 +1597,10 @@ with tab2:
                     unsafe_allow_html=True
                 )
 
-            with c2:
 
-                msg = (
+            with reminder:
+
+                message = (
                     f"Hello {row['name']}, "
                     f"your payment of Rs."
                     f"{int(row['credit'])} "
@@ -1642,110 +1610,130 @@ with tab2:
                     f"Thank you - NOOR CYBER WORLD."
                 )
 
-                wa = (
+
+                wa_url = (
                     "https://wa.me/91"
                     + str(row["mobile"]).strip()
                     + "?text="
-                    + quote(msg)
+                    + quote(message)
                 )
 
+
                 st.link_button(
-                    "💬 REMINDER",
-                    wa,
+                    "💬 SEND REMINDER",
+                    wa_url,
                     use_container_width=True
                 )
 
-            with c3:
+
+            with paid:
 
                 if st.button(
-                    "💵 RECEIVED",
-                    key=f"receive_{row['_row_number']}",
+                    "💵 CASH RECEIVED",
+                    key=f"credit_cash_{row['_row_number']}",
                     use_container_width=True
                 ):
 
-                    received = int(
-                        row["credit"]
-                    )
-
-                    ok, msg = api_post({
+                    payload = {
 
                         "action":
                             "credit_to_cash",
 
                         "row_number":
-                            int(row["_row_number"]),
+                            int(
+                                row["_row_number"]
+                            )
 
-                        "cash":
-                            str(
-                                int(row["cash"])
-                                + received
-                            ),
+                    }
 
-                        "credit":
-                            "0"
-                    })
+
+                    with st.spinner(
+                        "Updating payment..."
+                    ):
+
+                        ok, message = api_post(
+                            payload
+                        )
+
 
                     if ok:
 
-                        fetch_sheet_records.clear()
+                        refresh_data()
 
                         st.success(
-                            f"₹ {received:,} received."
+                            f"₹ {int(row['credit']):,} received from {row['name']}."
                         )
 
                         st.rerun()
 
                     else:
 
-                        st.error(msg)
+                        st.error(
+                            message
+                        )
 
 
 # ============================================================
-# TAB 3 — RENEWAL
+# TAB 3 — RENEWALS
 # ============================================================
 
 with tab3:
 
     st.markdown(
-        "<div class='nc-section'>🔔 RENEWAL ALERTS — NEXT 15 DAYS</div>",
+        """
+        <div class="nc-section">
+            🔔 RENEWAL ALERTS — NEXT 15 DAYS
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
+
     renewals = []
+
+    today = today_ist()
+
 
     if not df_all.empty:
 
         for _, row in df_all.iterrows():
 
-            exp = str(
+            expiry = str(
                 row["expiry"]
             ).strip()
 
-            if exp and exp != "N/A":
 
-                try:
+            if not expiry or expiry == "N/A":
+                continue
 
-                    exp_date = datetime.strptime(
-                        exp[:10],
-                        "%Y-%m-%d"
-                    ).date()
 
-                    days_left = (
-                        exp_date - today
-                    ).days
+            try:
 
-                    if 0 <= days_left <= 15:
+                expiry_date = datetime.strptime(
+                    expiry[:10],
+                    "%Y-%m-%d"
+                ).date()
 
-                        renewals.append(
-                            (
-                                row,
-                                exp_date,
-                                days_left
-                            )
+
+                days_left = (
+                    expiry_date - today
+                ).days
+
+
+                if 0 <= days_left <= 15:
+
+                    renewals.append(
+                        (
+                            row,
+                            expiry_date,
+                            days_left
                         )
+                    )
 
-                except Exception:
-                    pass
+            except Exception:
+
+                continue
+
 
     if not renewals:
 
@@ -1759,7 +1747,13 @@ with tab3:
             f"⚠️ {len(renewals)} renewal(s) pending."
         )
 
-        for row, exp_date, days_left in renewals:
+
+        for row, expiry_date, days_left in renewals:
+
+            formatted = expiry_date.strftime(
+                "%d-%m-%Y"
+            )
+
 
             st.markdown(
                 f"""
@@ -1776,9 +1770,9 @@ with tab3:
                 <br>
 
                 Expiry:
-                <b>{exp_date.strftime("%d-%m-%Y")}</b>
+                <b>{formatted}</b>
 
-                &nbsp; | &nbsp;
+                &nbsp; — &nbsp;
 
                 {days_left} days remaining
 
@@ -1787,25 +1781,27 @@ with tab3:
                 unsafe_allow_html=True
             )
 
-            msg = (
+
+            message = (
                 f"Hello {row['name']}, "
                 f"your {row['service']} "
-                f"is expiring on "
-                f"{exp_date.strftime('%d-%m-%Y')}. "
+                f"is expiring on {formatted}. "
                 f"Please visit NOOR CYBER WORLD "
                 f"for renewal."
             )
 
-            wa = (
+
+            wa_url = (
                 "https://wa.me/91"
                 + str(row["mobile"]).strip()
                 + "?text="
-                + quote(msg)
+                + quote(message)
             )
 
+
             st.link_button(
-                "💬 SEND RENEWAL MESSAGE",
-                wa
+                f"💬 SEND RENEWAL MESSAGE — {row['name']}",
+                wa_url
             )
 
 
@@ -1816,89 +1812,128 @@ with tab3:
 with tab4:
 
     st.markdown(
-        "<div class='nc-section'>💸 SHOP EXPENSES & ACTUAL PROFIT</div>",
+        """
+        <div class="nc-section">
+            💸 SHOP EXPENSE & REAL PROFIT
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
-    left, right = st.columns(2)
 
-    with left:
+    exp_left, exp_right = st.columns(
+        [1, 2]
+    )
 
-        st.markdown(
-            "### ➕ Add Expense"
+
+    with exp_left:
+
+        st.subheader(
+            "➕ Add Shop Expense"
         )
 
-        exp_title = st.text_input(
+
+        expense_title = st.text_input(
             "Expense Title",
-            placeholder="Rent / Paper / Tea / Electricity...",
-            key="expense_title"
+            placeholder="Paper, Rent, Tea, Electricity..."
         )
 
-        exp_amount = st.number_input(
+
+        expense_amount = st.number_input(
             "Expense Amount (₹)",
             min_value=0,
-            step=10,
-            key="expense_amount"
+            step=10
         )
 
+
         if st.button(
-            "💾 SAVE EXPENSE",
+            "💾 ADD EXPENSE",
             type="primary",
             use_container_width=True
         ):
 
-            if not exp_title.strip():
+            if not expense_title.strip():
 
                 st.error(
-                    "Enter expense title."
+                    "Expense title required."
                 )
 
-            elif exp_amount <= 0:
+                st.stop()
+
+
+            if expense_amount <= 0:
 
                 st.error(
-                    "Enter expense amount."
+                    "Expense amount must be greater than zero."
                 )
+
+                st.stop()
+
+
+            payload = {
+
+                "action":
+                    "add_expense",
+
+                "created_at":
+                    selected_date_str,
+
+                "title":
+                    expense_title.strip(),
+
+                "amount":
+                    int(expense_amount)
+
+            }
+
+
+            ok, message = api_post(
+                payload
+            )
+
+
+            if ok:
+
+                refresh_data()
+
+                st.success(
+                    "Expense added."
+                )
+
+                st.rerun()
 
             else:
 
-                ok, msg = api_post({
+                st.error(
+                    message
+                )
 
-                    "action":
-                        "add_expense",
 
-                    "created_at":
-                        selected_date_str,
+    with exp_right:
 
-                    "title":
-                        exp_title.strip(),
+        st.subheader(
+            f"📊 Expense Summary — {selected_date_str}"
+        )
 
-                    "amount":
-                        str(
-                            int(exp_amount)
-                        )
-                })
 
-                if ok:
+        if expenses_df.empty:
 
-                    fetch_expenses.clear()
+            today_expenses = expenses_df.copy()
 
-                    st.success(
-                        "Expense saved!"
-                    )
+        else:
 
-                    st.rerun()
+            today_expenses = expenses_df[
+                expenses_df["created_at"]
+                == selected_date_str
+            ].copy()
 
-                else:
 
-                    st.error(msg)
-
-    with right:
-
-        selected_expense_total = int(
-            selected_expenses_df["amount"].sum()
-            if not selected_expenses_df.empty
+        total_expenses = int(
+            today_expenses["amount"].sum()
+            if not today_expenses.empty
             else 0
         )
+
 
         selected_net = int(
             day_df["net_amount"].sum()
@@ -1906,139 +1941,107 @@ with tab4:
             else 0
         )
 
-        actual_profit = (
+
+        real_profit = (
             selected_net
-            - selected_expense_total
+            - total_expenses
         )
 
-        st.markdown(
-            f"""
-            <div class="dashboard-red">
 
-            <div class="dashboard-title">
-                🔴 EXPENSE SUMMARY
-            </div>
+        e1, e2, e3 = st.columns(3)
 
-            Date:
-            <b>{selected_date.strftime("%d-%m-%Y")}</b>
 
-            <br><br>
-
-            Net Income:
-            <b>₹ {selected_net:,}</b>
-
-            <br>
-
-            Expenses:
-            <b style="color:#ef4444;">
-            ₹ {selected_expense_total:,}
-            </b>
-
-            <br>
-
-            Actual Profit:
-            <b style="color:#22c55e;">
-            ₹ {actual_profit:,}
-            </b>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        e1.metric(
+            "NET PROFIT",
+            f"₹ {selected_net:,}"
         )
 
-    st.markdown("---")
 
-    st.markdown(
-        f"### 🔴 Expenses for {selected_date.strftime('%d-%m-%Y')}"
-    )
-
-    if selected_expenses_df.empty:
-
-        st.info(
-            "No expenses recorded."
+        e2.metric(
+            "EXPENSES",
+            f"₹ {total_expenses:,}"
         )
 
-    else:
 
-        expense_table = selected_expenses_df[
-            [
-                "created_at",
-                "title",
-                "amount"
-            ]
-        ].copy()
-
-        expense_table.columns = [
-            "Date",
-            "Expense",
-            "Amount"
-        ]
-
-        st.dataframe(
-            expense_table,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Amount":
-                    st.column_config.NumberColumn(
-                        format="₹ %d"
-                    )
-            }
+        e3.metric(
+            "REAL PROFIT",
+            f"₹ {real_profit:,}"
         )
 
-        st.markdown(
-            f"""
-            <div class="dashboard-red">
-                🔴 <b>Total Expenses:
-                ₹ {selected_expense_total:,}</b>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
 
-        for _, row in selected_expenses_df.iterrows():
+        st.markdown("---")
 
-            ec1, ec2, ec3 = st.columns(
-                [5, 2, 1]
+
+        if today_expenses.empty:
+
+            st.info(
+                "No expenses recorded for this date."
             )
 
-            with ec1:
-                st.write(
-                    f"🔴 **{row['title']}**"
+        else:
+
+            for _, exp in today_expenses.iterrows():
+
+                c1, c2 = st.columns(
+                    [5, 1]
                 )
 
-            with ec2:
-                st.write(
-                    f"₹ {int(row['amount']):,}"
-                )
 
-            with ec3:
+                with c1:
 
-                if st.button(
-                    "🗑️",
-                    key=f"expense_delete_{row['_row_number']}"
-                ):
+                    st.markdown(
+                        f"""
+                        <div class="expense-card">
 
-                    ok, msg = api_post({
+                        🔴 <b>{exp['title']}</b>
 
-                        "action":
-                            "delete_expense",
+                        &nbsp;&nbsp;
 
-                        "row_number":
-                            int(
-                                row["_row_number"]
+                        ₹ {int(exp['amount']):,}
+
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+
+                with c2:
+
+                    if st.button(
+                        "🗑️",
+                        key=f"expense_delete_{exp['_row_number']}",
+                        use_container_width=True
+                    ):
+
+                        payload = {
+
+                            "action":
+                                "delete_expense",
+
+                            "row_number":
+                                int(
+                                    exp["_row_number"]
+                                )
+
+                        }
+
+
+                        ok, message = api_post(
+                            payload
+                        )
+
+
+                        if ok:
+
+                            refresh_data()
+
+                            st.rerun()
+
+                        else:
+
+                            st.error(
+                                message
                             )
-                    })
-
-                    if ok:
-
-                        fetch_expenses.clear()
-
-                        st.rerun()
-
-                    else:
-
-                        st.error(msg)
 
 
 # ============================================================
@@ -2048,54 +2051,72 @@ with tab4:
 with tab5:
 
     st.markdown(
-        "<div class='nc-section'>📂 ALL CUSTOMER RECORDS</div>",
+        """
+        <div class="nc-section">
+            📂 CUSTOMER RECORDS & SEARCH
+        </div>
+        """,
         unsafe_allow_html=True
     )
+
 
     if df_all.empty:
 
         st.info(
-            "No customer records available."
+            "No records available."
         )
 
     else:
 
-        search_query = st.text_input(
-            "🔍 Search Name / Mobile / Service",
-            key="records_search"
+        search = st.text_input(
+            "🔍 Search Name / Mobile / Service"
         )
 
-        if search_query.strip():
 
-            q = search_query.strip().lower()
+        if search.strip():
 
-            filtered_df = df_all[
+            q = search.strip().lower()
+
+            mask = (
                 df_all["name"]
                 .str.lower()
-                .str.contains(q, na=False)
+                .str.contains(
+                    q,
+                    na=False
+                )
                 |
                 df_all["mobile"]
                 .str.lower()
-                .str.contains(q, na=False)
+                .str.contains(
+                    q,
+                    na=False
+                )
                 |
                 df_all["service"]
                 .str.lower()
-                .str.contains(q, na=False)
-            ].copy()
+                .str.contains(
+                    q,
+                    na=False
+                )
+            )
+
+            filtered = df_all[mask].copy()
 
         else:
 
-            filtered_df = df_all.copy()
+            filtered = df_all.copy()
+
 
         st.caption(
-            f"Showing {len(filtered_df)} records"
+            f"Showing {len(filtered)} records"
         )
 
-        # -----------------------------------------------
-        # TABLE
-        # -----------------------------------------------
 
-        records_table = filtered_df[
+        # ----------------------------------------------------
+        # COMPACT TABLE
+        # ----------------------------------------------------
+
+        table_df = filtered[
             [
                 "created_at",
                 "name",
@@ -2109,177 +2130,229 @@ with tab5:
             ]
         ].copy()
 
-        records_table.columns = [
+
+        table_df.columns = [
             "Date",
             "Customer",
             "Mobile",
             "Service",
-            "Total",
-            "Net",
+            "Amount",
+            "Net Profit",
             "Cash",
             "Credit",
             "Expiry"
         ]
 
+
         st.dataframe(
-            records_table,
+            table_df,
             use_container_width=True,
             hide_index=True,
-            height=550,
+            height=500,
             column_config={
-
-                "Date":
-                    st.column_config.TextColumn(
-                        width="small"
-                    ),
-
-                "Customer":
-                    st.column_config.TextColumn(
-                        width="medium"
-                    ),
-
-                "Mobile":
-                    st.column_config.TextColumn(
-                        width="medium"
-                    ),
-
-                "Service":
-                    st.column_config.TextColumn(
-                        width="large"
-                    ),
-
-                "Total":
-                    st.column_config.NumberColumn(
-                        format="₹ %d"
-                    ),
-
-                "Net":
-                    st.column_config.NumberColumn(
-                        format="₹ %d"
-                    ),
-
-                "Cash":
-                    st.column_config.NumberColumn(
-                        format="₹ %d"
-                    ),
-
-                "Credit":
-                    st.column_config.NumberColumn(
-                        format="₹ %d"
-                    ),
-
-                "Expiry":
-                    st.column_config.TextColumn(
-                        width="small"
-                    )
+                "Date": st.column_config.TextColumn(
+                    "Date",
+                    width="small"
+                ),
+                "Customer": st.column_config.TextColumn(
+                    "Customer",
+                    width="medium"
+                ),
+                "Mobile": st.column_config.TextColumn(
+                    "Mobile",
+                    width="small"
+                ),
+                "Service": st.column_config.TextColumn(
+                    "Service",
+                    width="large"
+                ),
+                "Amount": st.column_config.NumberColumn(
+                    "Amount",
+                    format="₹ %d"
+                ),
+                "Net Profit": st.column_config.NumberColumn(
+                    "Net Profit",
+                    format="₹ %d"
+                ),
+                "Cash": st.column_config.NumberColumn(
+                    "Cash",
+                    format="₹ %d"
+                ),
+                "Credit": st.column_config.NumberColumn(
+                    "Credit",
+                    format="₹ %d"
+                )
             }
         )
 
-        # -----------------------------------------------
-        # EDIT / DELETE
-        # -----------------------------------------------
 
         st.markdown("---")
 
-        st.markdown(
-            "### ⚙️ Manage Record"
+
+        # ----------------------------------------------------
+        # RECORD ACTIONS
+        # ----------------------------------------------------
+
+        st.subheader(
+            "✏️ Edit / Delete Record"
         )
 
-        selected_row_number = st.selectbox(
-            "Select Customer",
-            filtered_df.index,
-            format_func=lambda x:
-                f"{filtered_df.loc[x, 'name']} | "
-                f"{filtered_df.loc[x, 'mobile']} | "
-                f"{filtered_df.loc[x, 'created_at']}",
-            key="manage_record_select"
+
+        selected_row = st.selectbox(
+            "Select Record",
+            filtered["_row_number"].tolist(),
+            format_func=lambda x: (
+                f"{filtered.loc[filtered['_row_number'] == x, 'name'].iloc[0]}"
+                f" — "
+                f"{filtered.loc[filtered['_row_number'] == x, 'mobile'].iloc[0]}"
+                f" — "
+                f"{filtered.loc[filtered['_row_number'] == x, 'created_at'].iloc[0]}"
+            )
         )
 
-        selected_row = filtered_df.loc[
-            selected_row_number
-        ]
 
-        mc1, mc2 = st.columns(2)
+        selected_record = filtered[
+            filtered["_row_number"]
+            == selected_row
+        ].iloc[0].to_dict()
 
-        with mc1:
+
+        a1, a2 = st.columns(2)
+
+
+        with a1:
 
             if st.button(
                 "✏️ EDIT SELECTED RECORD",
                 use_container_width=True
             ):
 
-                st.session_state.editing_row = (
-                    selected_row.to_dict()
+                st.session_state.editing_customer = (
+                    selected_record
                 )
 
                 st.session_state.selected_date = (
                     datetime.strptime(
-                        str(
-                            selected_row[
-                                "created_at"
-                            ]
-                        )[:10],
+                        selected_record["created_at"],
                         "%Y-%m-%d"
                     ).date()
                 )
 
-                st.info(
-                    "Record selected for editing. "
-                    "Open TODAY'S ENTRIES tab."
-                )
+                st.rerun()
 
-        with mc2:
+
+        with a2:
 
             if st.button(
                 "🗑️ DELETE SELECTED RECORD",
                 use_container_width=True
             ):
 
-                ok, msg = api_post({
+                st.session_state.delete_confirm = (
+                    selected_record
+                )
 
-                    "action":
-                        "delete",
 
-                    "row_number":
-                        int(
-                            selected_row[
-                                "_row_number"
-                            ]
-                        )
-                })
+        # ----------------------------------------------------
+        # DELETE CONFIRMATION
+        # ----------------------------------------------------
 
-                if ok:
+        if (
+            "delete_confirm"
+            in st.session_state
+            and st.session_state.delete_confirm
+        ):
 
-                    fetch_sheet_records.clear()
+            record = (
+                st.session_state.delete_confirm
+            )
 
-                    st.success(
-                        "Record deleted."
+
+            st.warning(
+                f"⚠️ Delete {record['name']}'s record?"
+            )
+
+
+            y, n = st.columns(2)
+
+
+            with y:
+
+                if st.button(
+                    "✅ YES, DELETE",
+                    type="primary",
+                    use_container_width=True
+                ):
+
+                    payload = {
+
+                        "action":
+                            "delete",
+
+                        "row_number":
+                            int(
+                                record["_row_number"]
+                            )
+
+                    }
+
+
+                    ok, message = api_post(
+                        payload
                     )
+
+
+                    if ok:
+
+                        st.session_state.delete_confirm = None
+
+                        refresh_data()
+
+                        st.success(
+                            "Record deleted."
+                        )
+
+                        st.rerun()
+
+                    else:
+
+                        st.error(
+                            message
+                        )
+
+
+            with n:
+
+                if st.button(
+                    "❌ NO, CANCEL",
+                    use_container_width=True
+                ):
+
+                    st.session_state.delete_confirm = None
 
                     st.rerun()
 
-                else:
 
-                    st.error(msg)
-
-        # -----------------------------------------------
+        # ----------------------------------------------------
         # DOWNLOAD
-        # -----------------------------------------------
+        # ----------------------------------------------------
 
-        st.markdown("---")
-
-        export_df = filtered_df.drop(
+        export_df = filtered.drop(
             columns=["_row_number"],
             errors="ignore"
         )
 
+
         csv_data = export_df.to_csv(
             index=False
-        ).encode("utf-8-sig")
+        ).encode(
+            "utf-8-sig"
+        )
+
 
         st.download_button(
             "📥 DOWNLOAD CSV",
-            csv_data,
+            data=csv_data,
             file_name="NOOR_CYBER_WORLD_RECORDS.csv",
             mime="text/csv",
             use_container_width=True
@@ -2287,33 +2360,5 @@ with tab5:
 
 
 # ============================================================
-# WHATSAPP AFTER SAVE
+# END
 # ============================================================
-
-if "last_saved_wa" in st.session_state:
-
-    st.markdown("---")
-
-    st.success(
-        "🎉 Entry saved successfully!"
-    )
-
-    st.link_button(
-        "💬 SEND THANK YOU WHATSAPP",
-        st.session_state.last_saved_wa,
-        use_container_width=True
-    )
-
-
-# ============================================================
-# SUCCESS TOAST
-# ============================================================
-
-if "success_message" in st.session_state:
-
-    st.toast(
-        st.session_state.pop(
-            "success_message"
-        ),
-        icon="✅"
-    )
