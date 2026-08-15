@@ -305,22 +305,24 @@ div[data-testid="stMetricValue"] {
 
 </style>
 
-<div class="nc-header">
+st.markdown(
+    """
+    <div class="nc-header">
 
-    <div class="nc-title">
-        NOOR CYBER WORLD
+        <div class="nc-title">
+            NOOR CYBER WORLD
+        </div>
+
+        <div class="nc-main-title">
+            CUSTOMER MANAGEMENT SYSTEM
+        </div>
+
+        <div class="nc-sub">
+            DIGITAL SERVICE • CUSTOMER RECORD • SMART MANAGEMENT
+        </div>
+
     </div>
-
-    <div class="nc-main-title">
-        CUSTOMER MANAGEMENT SYSTEM
-    </div>
-
-    <div class="nc-sub">
-        DIGITAL SERVICE • CUSTOMER RECORD • SMART MANAGEMENT
-    </div>
-
-</div>
-""",
+    """,
     unsafe_allow_html=True
 )
 
