@@ -20,9 +20,7 @@ st.set_page_config(
 )
 
 WEB_APP_URL = (
-    "https://script.google.com/macros/s/"
-    "AKfycbwSipN_etRHmOKXczikdg1gwzBvksliKCLQ0NYIJX9BbCGcyalc8H14aMTo_mNAbytK"
-    "/exec"
+    "https://script.google.com/macros/s/AKfycbwSipN_etRHmOKXczikdg1gwzBvksliKCLQ0NYIJX9BbCGcyalc8H14aMTo_mNAbytK/exec"
 )
 
 IST = timezone(timedelta(hours=5, minutes=30))
