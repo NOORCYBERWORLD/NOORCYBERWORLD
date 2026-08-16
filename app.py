@@ -238,8 +238,8 @@ st.markdown("""
 }
 
 .nc-logo-img {
-    width: 72px;  /* Exactly 1 inch (96DPI standard: 1 in = 72px - 96px screen fit) */
-    height: 72px;
+   width: 144px;  /* Exactly 2 inch (Standard 96 DPI: 2 in = 144px) */
+    height: 144px;
     object-fit: contain;
     filter: drop-shadow(0px 0px 8px rgba(34,211,238,0.5));
 }
