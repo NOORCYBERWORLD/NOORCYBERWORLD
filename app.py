@@ -387,7 +387,7 @@ with tab1:
             table[col] = table[col].map(lambda x: f"₹ {float(x):,.0f}")
         st.dataframe(table, use_container_width=True, hide_index=True)
 
-                   info, edit_col, del_col = st.columns([8,1,1])
+                 
             with info:
                 st.markdown(
                     f"""<div class="{cls}">
