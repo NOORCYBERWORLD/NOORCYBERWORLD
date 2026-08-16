@@ -18,7 +18,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 # ============================================================
 
 WEB_APP_URL = (
-    "https://script.google.com/macros/s/AKfycbwSipN_etRHmOKXczikdg1gwzBvksliKCLQ0NYIJX9BbCGcyalc8H14aMTo_mNAbytK/exec"
+    "https://script.google.com/macros/s/"
+    "AKfycbwSipN_etRHmOKXczikdg1gwzBvksliKCLQ0NYIJX9BbCGcyalc8H14aMTo_mNAbytK"
+    "/exec"
 )
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -546,4 +548,134 @@ with tab4:
     if add_exp:
         if not exp_title.strip() or exp_amount <= 0: st.error("Enter valid expense title and amount.")
         else:
-            
+            ok,msg=post_api({"action":"add_expense","created_at":selected_date_str,"title":exp_title.strip(),"amount":str(int(exp_amount))})
+            if ok: invalidate_data(); st.session_state.success_message="Expense saved."; st.rerun()
+            else: st.error(msg)
+    selected_expenses=[x for x in expenses if str(x.get("created_at",""))[:10]==selected_date_str]
+    total_exp=sum(float(x.get("amount",0)) for x in selected_expenses)
+    actual_saving=total_net-total_exp
+    st.markdown(f"<div class='nc-mini'>NET PROFIT: <span class='profit'>₹ {total_net:,}</span> &nbsp; | &nbsp; EXPENSES: <span class='nc-red-text'>₹ {total_exp:,.0f}</span> &nbsp; | &nbsp; ACTUAL SAVINGS: <span class='profit'>₹ {actual_saving:,.0f}</span></div>", unsafe_allow_html=True)
+    if selected_expenses:
+        headers=["DATE","EXPENSE TITLE","AMOUNT","DELETE"]; widths=[1,5,1.3,.6]; hc=st.columns(widths)
+        for i,h in enumerate(headers):
+            with hc[i]: st.markdown(f"<div class='nc-table-head'>{h}</div>",unsafe_allow_html=True)
+        for exp in sorted(selected_expenses,key=lambda x:int(x.get("_row_number",0)),reverse=True):
+            rn=int(exp.get("_row_number",0)); cols=st.columns(widths)
+            with cols[0]: st.markdown(f"<div class='nc-table-row'>{exp.get('created_at','')}</div>",unsafe_allow_html=True)
+            with cols[1]: st.markdown(f"<div class='nc-table-row nc-red-text'>{exp.get('title','')}</div>",unsafe_allow_html=True)
+            with cols[2]: st.markdown(f"<div class='nc-table-row nc-red-text'>₹ {float(exp.get('amount',0)):,.0f}</div>",unsafe_allow_html=True)
+            with cols[3]:
+                if st.button("🗑️",key=f"expdel_{rn}"):
+                    ok,msg=post_api({"action":"delete_expense","row_number":rn})
+                    if ok: invalidate_data(); st.rerun()
+                    else: st.error(msg)
+    else: st.info("No expenses recorded for this date.")
+
+# ============================================================
+# TAB 5 - RECORDS
+# ============================================================
+
+with tab5:
+    st.markdown("<div class='nc-section'>📂 CUSTOMER RECORDS & SEARCH</div>", unsafe_allow_html=True)
+    q=st.text_input("🔍 Search Name / Mobile / Service",key="search_records").strip().lower()
+    filtered=df.copy()
+    if q:
+        filtered=filtered[filtered["name"].str.lower().str.contains(q,na=False)|filtered["mobile"].str.lower().str.contains(q,na=False)|filtered["service"].str.lower().str.contains(q,na=False)]
+    b1,b2=st.columns(2)
+    with b1:
+        export=filtered.drop(columns=["_row_number"],errors="ignore")
+        st.download_button("📥 DOWNLOAD CSV",export.to_csv(index=False).encode("utf-8-sig"),"NOOR_CYBER_WORLD_RECORDS.csv","text/csv",use_container_width=True)
+    with b2:
+        buffer=io.BytesIO(); doc=SimpleDocTemplate(buffer,pagesize=letter,rightMargin=20,leftMargin=20,topMargin=20,bottomMargin=20)
+        styles=getSampleStyleSheet(); elements=[Paragraph("NOOR CYBER WORLD - CUSTOMER RECORDS",ParagraphStyle("title",parent=styles["Heading1"],alignment=1,fontSize=16)),Spacer(1,10)]
+        rows=[["Date","Name","Mobile","Service","Gross","Net","Cash","Credit","Expiry"]]
+        for _,r in export.iterrows(): rows.append([str(r["created_at"]),str(r["name"]),str(r["mobile"]),str(r["service"]),f"Rs. {float(r['amount']):.0f}",f"Rs. {float(r['net_amount']):.0f}",f"Rs. {float(r['cash']):.0f}",f"Rs. {float(r['credit']):.0f}",str(r["expiry"])])
+        tbl=Table(rows,repeatRows=1); tbl.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#0f172a")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("GRID",(0,0),(-1,-1),.4,colors.grey),("FONTSIZE",(0,0),(-1,-1),7),("ALIGN",(0,0),(-1,-1),"CENTER")]))
+        elements.append(tbl); doc.build(elements); buffer.seek(0)
+        st.download_button("📄 DOWNLOAD PDF",buffer.getvalue(),"NOOR_CYBER_WORLD_RECORDS.pdf","application/pdf",use_container_width=True)
+    st.caption(f"Showing {len(filtered)} records • Latest entry first")
+    st.markdown("<div class='nc-table-wrap'>",unsafe_allow_html=True); render_table(filtered,"rec"); st.markdown("</div>",unsafe_allow_html=True)
+
+# ============================================================
+# AUTO DAILY ENTRY MANAGEMENT - SIDEBAR
+# ============================================================
+
+with st.sidebar:
+    st.markdown("## 🔁 AUTO DAILY ENTRY")
+    st.caption("A configured entry is added automatically once per day until you stop it.")
+    active_recurring=[x for x in recurring if str(x.get("active","TRUE")).upper()=="TRUE"]
+    st.write(f"Active rules: **{len(active_recurring)}**")
+    with st.expander("➕ Create Daily Rule"):
+        r_name=st.text_input("Customer Name",key="r_name")
+        r_mobile=st.text_input("Mobile",key="r_mobile")
+        r_service=st.selectbox("Service",service_list(),key="r_service")
+        r_amount=st.number_input("Daily Amount (₹)",min_value=0,step=10,key="r_amount")
+        r_net=st.number_input("Daily Net Profit (₹)",min_value=0,step=10,key="r_net")
+        r_payment=st.radio("Payment",["CASH","CREDIT"],horizontal=True,key="r_payment")
+        if st.button("SAVE AUTO RULE",use_container_width=True):
+            if not r_name.strip() or not r_mobile.strip() or r_amount<=0 or r_net>r_amount: st.error("Fill valid customer, amount and profit.")
+            else:
+                ok,msg=post_api({"action":"add_recurring","name":r_name.strip(),"mobile":r_mobile.strip(),"service":r_service,"amount":str(int(r_amount)),"net_amount":str(int(r_net)),"payment":r_payment,"active":"TRUE","start_date":today_s})
+                if ok: invalidate_data(); st.success("Auto daily rule saved."); st.rerun()
+                else: st.error(msg)
+    if recurring:
+        for rr in recurring:
+            rid=int(rr.get("_row_number",0)); active=str(rr.get("active","TRUE")).upper()=="TRUE"
+            label=f"{'🟢' if active else '⚪'} {rr.get('name','')} • ₹{float(rr.get('amount',0)):,.0f} • {rr.get('payment','CASH')}"
+            st.write(label)
+            if active:
+                if st.button("STOP",key=f"stop_rec_{rid}",use_container_width=True):
+                    ok,msg=post_api({"action":"toggle_recurring","row_number":rid,"active":"FALSE"})
+                    if ok: invalidate_data(); st.rerun()
+                    else: st.error(msg)
+            else:
+                if st.button("START",key=f"start_rec_{rid}",use_container_width=True):
+                    ok,msg=post_api({"action":"toggle_recurring","row_number":rid,"active":"TRUE"})
+                    if ok: invalidate_data(); st.rerun()
+                    else: st.error(msg)
+
+# ============================================================
+# GLOBAL EDIT / DELETE CONFIRMATION
+# ============================================================
+
+@st.dialog("✏️ EDIT CUSTOMER ENTRY")
+def edit_dialog(row):
+    rn=int(row["_row_number"])
+    mobile=st.text_input("Mobile Number *",value=str(row.get("mobile","")),key=f"ed_m_{rn}")
+    name=st.text_input("Customer Name *",value=str(row.get("name","")),key=f"ed_n_{rn}")
+    service=st.text_input("Services (comma separated) *",value=str(row.get("service","")),key=f"ed_s_{rn}")
+    amount=st.number_input("Total Fee / Gross Amount (₹)",min_value=0,step=10,value=int(float(row.get("amount",0))),key=f"ed_a_{rn}")
+    net=st.number_input("Net Profit (₹)",min_value=0,step=10,value=int(float(row.get("net_amount",0))),key=f"ed_net_{rn}")
+    payment=st.radio("Payment Type",["CASH","CREDIT"],index=1 if float(row.get("credit",0))>0 else 0,horizontal=True,key=f"ed_p_{rn}")
+    if net>amount: st.error("Net Profit cannot be greater than Total Fee."); return
+    if st.button("✅ YES, SAVE CHANGES",type="primary",use_container_width=True,key=f"ed_save_{rn}"):
+        ok,msg=post_api({"action":"edit","row_number":rn,"created_at":str(row.get("created_at",""))[:10],"name":name.strip(),"mobile":mobile.strip(),"service":service.strip(),"amount":str(int(amount)),"net_amount":str(int(net)),"cash":str(int(amount) if payment=="CASH" else 0),"credit":str(int(amount) if payment=="CREDIT" else 0),"expiry":str(row.get("expiry","N/A"))})
+        if ok: invalidate_data(); st.session_state.editing_row=None; st.session_state.success_message="Entry updated successfully."; st.rerun()
+        else: st.error(msg)
+    if st.button("❌ NO, CANCEL",use_container_width=True,key=f"ed_cancel_{rn}"):
+        st.session_state.editing_row=None; st.rerun()
+
+if st.session_state.editing_row is not None:
+    edit_dialog(st.session_state.editing_row)
+
+if st.session_state.confirm_delete:
+    rn=int(st.session_state.confirm_delete)
+    st.warning(f"Delete customer entry #{rn}?")
+    y,n=st.columns(2)
+    with y:
+        if st.button("✅ YES, DELETE",type="primary",use_container_width=True,key="confirm_del_yes"):
+            ok,msg=post_api({"action":"delete","row_number":rn})
+            if ok: st.session_state.confirm_delete=None; invalidate_data(); st.session_state.success_message="Entry deleted."; st.rerun()
+            else: st.error(msg)
+    with n:
+        if st.button("❌ NO, KEEP",use_container_width=True,key="confirm_del_no"):
+            st.session_state.confirm_delete=None; st.rerun()
+
+if st.session_state.last_saved_wa:
+    st.link_button("💬 SEND THANK YOU WHATSAPP",st.session_state.last_saved_wa,use_container_width=True)
+    if st.button("Close WhatsApp button",key="close_wa"):
+        st.session_state.last_saved_wa=None; st.rerun()
+
+if st.session_state.success_message:
+    st.toast(st.session_state.success_message,icon="✅")
+    st.session_state.success_message=None
