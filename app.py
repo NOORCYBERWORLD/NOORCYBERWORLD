@@ -10,7 +10,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
 # ============================================================
-# NOOR CYBER WORLD - COMPLETE APP WITH CYBER OFFICE BACKGROUND & 2X2 LOGO
+# NOOR CYBER WORLD - CYBERTECH IMAGE BACKGROUND & COMPLETE CODE
 # ============================================================
 
 st.set_page_config(
@@ -206,20 +206,21 @@ def post_api(payload):
         return False, str(e)
 
 # ============================================================
-# STYLING: CYBER OFFICE BACKGROUND & 2X2 INCH LOGO
+# STYLING: HIGH-QUALITY CYBERTECH IMAGE BACKGROUND & 2X2 LOGO
 # ============================================================
 
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
 
-/* Premium Dynamic Cyber Office Background */
+/* Cybertech Image Background with Dark Overlay */
 .stApp {
     background: 
-        radial-gradient(circle at 15% 15%, rgba(34, 211, 238, 0.12), transparent 35%),
-        radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.12), transparent 40%),
-        radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.08), transparent 45%),
-        linear-gradient(135deg, #030712 0%, #0b1329 50%, #060d19 100%);
+        linear-gradient(rgba(3, 7, 18, 0.88), rgba(6, 13, 25, 0.92)),
+        url("https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1920&auto=format&fit=crop");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     background-attachment: fixed;
     color: #f8fafc;
     font-family: Inter, sans-serif;
@@ -241,12 +242,12 @@ st.markdown("""
     margin-bottom: 20px;
 }
 
-/* 2x2 Inch Logo Styling (144px x 144px at standard 96 DPI) */
+/* 2x2 Inch Logo Styling (144px x 144px) */
 .nc-logo-img {
     width: 144px;
     height: 144px;
     object-fit: contain;
-    filter: drop-shadow(0px 0px 12px rgba(34, 211, 238, 0.6));
+    filter: drop-shadow(0px 0px 14px rgba(34, 211, 238, 0.7));
     border-radius: 12px;
 }
 
@@ -261,7 +262,7 @@ st.markdown("""
     font-weight: 800;
     letter-spacing: 3px;
     color: #22d3ee;
-    text-shadow: 0 0 20px rgba(34, 211, 238, 0.5);
+    text-shadow: 0 0 20px rgba(34, 211, 238, 0.6);
 }
 
 .nc-main-title {
@@ -281,10 +282,10 @@ st.markdown("""
 
 /* Glassmorphism Summary Card */
 .nc-top {
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(34, 211, 238, 0.3);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(34, 211, 238, 0.35);
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
     border-radius: 14px;
     padding: 12px 18px;
     text-align: center;
@@ -307,11 +308,11 @@ st.markdown("""
 .nc-green { color: #22c55e; font-weight: 700; }
 .nc-red { color: #ef4444; font-weight: 700; }
 
-/* Metric Cards with Glowing Border Effect */
+/* Metric Cards with Neon Glowing Border */
 div[data-testid="stMetric"] {
-    background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.7));
-    border: 1px solid rgba(34, 211, 238, 0.25);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.75));
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     border-radius: 15px;
     padding: 15px;
 }
