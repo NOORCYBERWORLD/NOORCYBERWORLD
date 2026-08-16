@@ -33,35 +33,51 @@ COLUMNS = [
     "expiry", "_row_number"
 ]
 
+# Comprehensive Digital & Maha e-Seva / Aaple Sarkar Services List
 BASE_SERVICES = sorted([
+    "7/12 Extract & 8A Utara (Land Record)",
     "Aadhaar Card Download / Update",
-    "Ayushman Bharat Card",
-    "Caste Certificate",
-    "Digital Signature (DSC)",
-    "Domicile Certificate",
+    "Age, Nationality & Domicile Certificate",
+    "Ayushman Bharat Card (PM-JAY)",
+    "Birth Certificate Application / Correction",
+    "Caste Certificate & Validity",
+    "Character Certificate (Police Verification)",
+    "Death Certificate Application",
+    "Digital Signature Certificate (DSC)",
+    "Disability Certificate (UDID Card)",
     "Driving License (LL/DL) & RC Services",
+    "E-Gazette Notification (Name/DOB Change)",
+    "E-Panchayat & Gram Panchayat Services",
     "E-Shram Card",
     "Electricity / Gas / Water Bill Payment",
-    "FSSAI Food License",
-    "Gazette Notification / Name Change",
+    "Encumbrance Certificate (Search Report)",
+    "FSSAI Food License / Registration",
     "GST Registration & Return Filing",
     "Income Certificate",
     "Income Tax Return (ITR) Filing",
-    "Money Transfer (DMT) / AEPS Cash Withdrawal",
+    "Kisan Credit Card (KCC) & Agri Schemes",
+    "Labor Card / Worker Registration",
+    "LPG Gas Booking & Transfer",
     "Mobile / DTH Recharge",
+    "Money Transfer (DMT) / AEPS Cash Withdrawal",
     "Non-Creamy Layer Certificate",
     "PAN Card New / Correction",
-    "Passport Application",
+    "Passport Application / Renewal",
     "PF / EPF Withdrawal & Claim",
-    "Police Verification Application",
-    "PM Kisan Samman Nidhi / KYC",
-    "PVC Card Printing",
+    "PM Kisan Samman Nidhi / KYC Update",
+    "Police Verification / NOC Application",
+    "Property Tax & Water Tax Payment",
+    "PVC Card Printing (Aadhaar/PAN/Voter)",
     "Railway / Bus / Air Ticket Booking",
-    "Ration Card Services",
-    "Resume / Bio-Data Making",
-    "Shop Act License",
+    "Ration Card New / Transfer / Update",
+    "Resume / Bio-Data & Online Form Filling",
+    "Senior Citizen ID Card",
+    "Shop Act License (Gumasta)",
+    "Student Scholarship Form (MahaDBT)",
     "Udyam Aadhaar / MSME Registration",
     "Voter ID Card Apply / Correction",
+    "Voter Registration & PVC Card",
+    "Widow / Old Age / Pension Scheme Form",
     "Xerox / Color Printout / Lamination / Scanning"
 ], key=str.lower)
 
@@ -190,7 +206,7 @@ def post_api(payload):
         return False, str(e)
 
 # ============================================================
-# STYLE + HEADER
+# STYLE + HEADER ADJUSTMENT
 # ============================================================
 
 st.markdown("""
@@ -205,12 +221,20 @@ st.markdown("""
     color:#f8fafc;
     font-family:Inter,sans-serif;
 }
-.block-container{max-width:1450px;padding-top:1rem;padding-bottom:3rem}
+.block-container{
+    max-width:1450px;
+    padding-top:2.5rem !important; /* Fixed spacing to bring header fully into view */
+    padding-bottom:3rem;
+}
 
-.nc-header{text-align:center;padding:10px 10px 12px}
+.nc-header{
+    text-align:center;
+    padding:5px 10px 15px;
+    margin-bottom:10px;
+}
 .nc-title{
     font-family:Orbitron,Arial,sans-serif;
-    font-size:40px;
+    font-size:36px;
     line-height:1.2;
     font-weight:800;
     letter-spacing:3px;
@@ -218,7 +242,7 @@ st.markdown("""
     text-shadow:0 0 18px rgba(34,211,238,.35);
 }
 .nc-main-title{
-    font-size:21px;font-weight:800;letter-spacing:2px;color:white;margin-top:5px
+    font-size:19px;font-weight:800;letter-spacing:2px;color:white;margin-top:4px
 }
 .nc-sub{font-size:11px;letter-spacing:2px;color:#94a3b8;margin-top:4px}
 
@@ -226,9 +250,9 @@ st.markdown("""
     background:rgba(15,23,42,.88);
     border:1px solid rgba(34,211,238,.25);
     border-radius:12px;
-    padding:7px 13px;
-    text-align:right;
-    font-size:12px;
+    padding:8px 13px;
+    text-align:center;
+    font-size:13px;
     line-height:1.8;
 }
 .profit{color:#22c55e;font-weight:800}
@@ -240,14 +264,9 @@ st.markdown("""
     font-size:18px;font-weight:700;
     color:#e2e8f0;margin:8px 0 14px
 }
-.nc-green{
-    color: #22c55e;
-    font-weight: 700;
-}
-.nc-red{
-    color: #ef4444;
-    font-weight: 700;
-}
+.nc-green{color: #22c55e; font-weight: 700;}
+.nc-red{color: #ef4444; font-weight: 700;}
+
 div[data-testid="stMetric"]{
     background:linear-gradient(145deg,rgba(15,23,42,.95),rgba(30,41,59,.75));
     border:1px solid rgba(96,165,250,.20);
@@ -259,7 +278,7 @@ div[data-testid="stMetric"]{
 <div class="nc-header">
   <div class="nc-title">NOOR CYBER WORLD</div>
   <div class="nc-main-title">CUSTOMER MANAGEMENT SYSTEM</div>
-  <div class="nc-sub">DIGITAL SERVICE • CUSTOMER RECORD • SMART MANAGEMENT</div>
+  <div class="nc-sub">DIGITAL SERVICE • MAHA E-SEVA KENDRA • SMART RECORD</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -347,7 +366,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 # ============================================================
-# TAB 1 - TODAY'S ENTRIES
+# TAB 1 - TODAY'S ENTRIES & ADD ENTRY
 # ============================================================
 
 with tab1:
@@ -372,7 +391,6 @@ with tab1:
     if day_df.empty:
         st.info("ℹ️ No entries recorded for this date yet.")
     else:
-        # Table Header with Left Action Buttons
         h_act, h_date, h_name, h_mob, h_serv, h_amt, h_net, h_cash, h_cred, h_exp = st.columns([0.8, 1, 1.8, 1.2, 2.5, 1, 1, 1, 1, 1])
         h_act.markdown("**Actions**")
         h_date.markdown("**Date**")
@@ -442,7 +460,7 @@ with tab1:
     st.markdown("---")
 
     # ========================================================
-    # ADD / EDIT FORM
+    # PERFECTLY ALIGNED FORM (LEFT & RIGHT BALANCED)
     # ========================================================
 
     editing = st.session_state.editing_row is not None
@@ -473,9 +491,11 @@ with tab1:
         unsafe_allow_html=True
     )
 
-    left, right = st.columns(2)
+    # 2 Equal Columns for Balanced Layout
+    col_left, col_right = st.columns(2)
 
-    with left:
+    with col_left:
+        st.markdown("**Customer Details**")
         if editing:
             mobile = st.text_input(
                 "Mobile Number *",
@@ -512,66 +532,60 @@ with tab1:
                 disabled=unknown_customer
             ).strip()
 
-    st.markdown("<div style='font-weight:700;margin:8px 0 4px'>Services</div>", unsafe_allow_html=True)
+        st.markdown("**Services Selection**")
+        svcs = services()
+        service_values = []
+        total_service_amount = 0
 
-    svcs = services()
-    service_values = []
-    total_service_amount = 0
+        for i, item in enumerate(st.session_state.service_rows):
+            service_col, amount_col = st.columns([3.5, 1.5])
 
-    for i, item in enumerate(st.session_state.service_rows):
-        service_col, amount_col = st.columns([4, 1.3])
+            current_service = str(item.get("service", svcs[0]))
+            if current_service not in svcs:
+                st.session_state.custom_services.append(current_service)
+                svcs = services()
 
-        current_service = str(item.get("service", svcs[0]))
-        if current_service not in svcs:
-            st.session_state.custom_services.append(current_service)
-            svcs = services()
+            service_index = svcs.index(current_service) if current_service in svcs else 0
 
-        service_index = svcs.index(current_service) if current_service in svcs else 0
+            with service_col:
+                selected = st.selectbox(
+                    f"Service {i + 1}",
+                    svcs,
+                    index=service_index,
+                    key=f"service_field_{i}"
+                )
 
-        with service_col:
-            selected = st.selectbox(
-                f"Service {i + 1}",
-                svcs,
-                index=service_index,
-                key=f"service_field_{i}"
-            )
+                custom_value = ""
+                if selected == "Other":
+                    custom_value = st.text_input(
+                        f"Enter Custom Service {i + 1}",
+                        key=f"custom_service_field_{i}"
+                    ).strip()
+                    if custom_value and custom_value not in st.session_state.custom_services:
+                        st.session_state.custom_services.append(custom_value)
+                        selected = custom_value
 
-            custom_value = ""
-            if selected == "Other":
-                custom_value = st.text_input(
-                    f"Custom Service {i + 1}",
-                    key=f"custom_service_field_{i}"
-                ).strip()
-                if custom_value and custom_value not in st.session_state.custom_services:
-                    st.session_state.custom_services.append(custom_value)
-                    selected = custom_value
+            with amount_col:
+                svc_amount = st.number_input(
+                    f"Amount {i + 1} (₹)",
+                    min_value=0,
+                    step=10,
+                    value=int(item.get("amount", 0)),
+                    key=f"service_amount_{i}"
+                )
 
-        with amount_col:
-            svc_amount = st.number_input(
-                f"Amount {i + 1} (₹)",
-                min_value=0,
-                step=10,
-                value=int(item.get("amount", 0)),
-                key=f"service_amount_{i}"
-            )
+            service_values.append(selected)
+            total_service_amount += int(svc_amount)
 
-        service_values.append(selected)
-        total_service_amount += int(svc_amount)
+        if st.button("＋ ADD MORE SERVICE", key="add_service_button"):
+            st.session_state.service_rows.append({"service": svcs[0], "amount": 0})
+            st.rerun()
 
-        if i == 0:
-            if st.button("＋ ADD SERVICE", key="add_service_button", use_container_width=False):
-                st.session_state.service_rows.append({"service": svcs[0], "amount": 0})
-                st.rerun()
-
-    st.markdown(
-        f"<div style='font-weight:800;color:#22d3ee;margin:6px 0 12px'>TOTAL SERVICE AMOUNT: ₹ {total_service_amount:,}</div>",
-        unsafe_allow_html=True
-    )
-
-    with right:
+    with col_right:
+        st.markdown("**Billing & Payment Details**")
         amount = total_service_amount
         st.markdown(
-            f"<div style=\"font-weight:800;font-size:16px;margin:8px 0 14px;color:#f8fafc\">TOTAL FEE / GROSS AMOUNT: <span style=\"color:#22d3ee\">₹ {int(amount):,}</span></div>",
+            f"<div style=\"font-weight:800;font-size:16px;margin:5px 0 12px;color:#f8fafc\">TOTAL FEE / GROSS AMOUNT: <span style=\"color:#22d3ee\">₹ {int(amount):,}</span></div>",
             unsafe_allow_html=True
         )
 
@@ -609,21 +623,28 @@ with tab1:
             key="has_expiry"
         )
 
-        unit = st.selectbox(
-            "Validity Unit",
-            ["Days", "Months", "Years"],
-            index=1,
-            key="validity_unit"
-        )
+        if has_expiry:
+            v_unit_col, v_dur_col = st.columns(2)
+            with v_unit_col:
+                unit = st.selectbox(
+                    "Validity Unit",
+                    ["Days", "Months", "Years"],
+                    index=1,
+                    key="validity_unit"
+                )
+            with v_dur_col:
+                duration = st.number_input(
+                    "Validity Duration",
+                    min_value=1,
+                    value=1,
+                    step=1,
+                    key="validity_duration"
+                )
+        else:
+            unit = "Months"
+            duration = 1
 
-        duration = st.number_input(
-            "Validity Duration",
-            min_value=1,
-            value=1,
-            step=1,
-            key="validity_duration"
-        )
-
+    st.markdown("<br>", unsafe_allow_html=True)
     save, cancel = st.columns(2)
 
     with save:
@@ -933,7 +954,6 @@ with tab5:
             key="search_records"
         ).strip().lower()
 
-        # Sort all entries: newest first
         filtered = df.copy()
         filtered = filtered.sort_values(by="created_at", ascending=False)
 
@@ -1019,7 +1039,6 @@ with tab5:
 
         st.caption(f"Showing {len(filtered)} total records (latest first)")
 
-        # ALL RECORDS TABLE WITH EDIT / DELETE BUTTONS ON THE LEFT SIDE
         rh_act, rh_date, rh_name, rh_mob, rh_serv, rh_amt, rh_net, rh_cash, rh_cred, rh_exp = st.columns([0.8, 1, 1.8, 1.2, 2.5, 1, 1, 1, 1, 1])
         rh_act.markdown("**Actions**")
         rh_date.markdown("**Date**")
