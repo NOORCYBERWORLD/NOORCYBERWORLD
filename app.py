@@ -387,8 +387,6 @@ with tab1:
             table[col] = table[col].map(lambda x: f"₹ {float(x):,.0f}")
         st.dataframe(table, use_container_width=True, hide_index=True)
 
-                 
-            with info:
                 st.markdown(
                     f"""<div class="{cls}">
                     <b>{row['name']}</b> • {row['mobile']} • {row['service']}
