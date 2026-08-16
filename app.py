@@ -387,6 +387,13 @@ with tab1:
             table[col] = table[col].map(lambda x: f"₹ {float(x):,.0f}")
         st.dataframe(table, use_container_width=True, hide_index=True)
 
+        st.markdown("#### Entry Actions")
+        for _, row in day_df.iterrows():
+            rn = int(row["_row_number"])
+            cls = "nc-red" if float(row["credit"]) > 0 else "nc-green"
+
+            info, edit_col, del_col = st.columns([8,1,1])
+            with info:
                 st.markdown(
                     f"""<div class="{cls}">
                     <b>{row['name']}</b> • {row['mobile']} • {row['service']}
