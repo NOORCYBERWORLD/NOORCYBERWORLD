@@ -221,45 +221,30 @@ st.markdown("""
     color:#f8fafc;
     font-family:Inter,sans-serif;
 }
-
-/* 1. Main Container Padding - Header ko niche shift karne ke liye */
 .block-container{
     max-width:1450px;
-    padding-top: 5.5rem !important; /* Extra space taaki title browser header ke niche perfectly dikhe */
-    padding-bottom: 3rem;
+    padding-top:2.5rem !important; /* Fixed spacing to bring header fully into view */
+    padding-bottom:3rem;
 }
 
-/* 2. Header Container Adjustments */
 .nc-header{
     text-align:center;
-    padding: 10px 10px 20px 10px;
-    margin-bottom: 15px;
+    padding:5px 10px 15px;
+    margin-bottom:10px;
 }
-
-/* 3. Title Text Clarity Improvements */
 .nc-title{
     font-family:Orbitron,Arial,sans-serif;
-    font-size: 38px;
-    line-height: 1.3;
-    font-weight: 800;
-    letter-spacing: 3px;
-    color: #22d3ee;
-    text-shadow: 0 0 12px rgba(34,211,238,0.5);
-    margin-top: 10px;
+    font-size:36px;
+    line-height:1.2;
+    font-weight:800;
+    letter-spacing:3px;
+    color:#22d3ee;
+    text-shadow:0 0 18px rgba(34,211,238,.35);
 }
 .nc-main-title{
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 2px;
-    color: #ffffff;
-    margin-top: 6px;
+    font-size:19px;font-weight:800;letter-spacing:2px;color:white;margin-top:4px
 }
-.nc-sub{
-    font-size: 12px;
-    letter-spacing: 2px;
-    color: #94a3b8;
-    margin-top: 6px;
-}
+.nc-sub{font-size:11px;letter-spacing:2px;color:#94a3b8;margin-top:4px}
 
 .nc-top{
     background:rgba(15,23,42,.88);
@@ -289,13 +274,6 @@ div[data-testid="stMetric"]{
 }
 .stButton>button{border-radius:9px;font-weight:700}
 </style>
-
-<div class="nc-header">
-  <div class="nc-title">NOOR CYBER WORLD</div>
-  <div class="nc-main-title">CUSTOMER MANAGEMENT SYSTEM</div>
-  <div class="nc-sub">DIGITAL SERVICE • MAHA E-SEVA KENDRA • SMART RECORD</div>
-</div>
-""", unsafe_allow_html=True)
 
 <div class="nc-header">
   <div class="nc-title">NOOR CYBER WORLD</div>
