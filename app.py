@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import requests, json, io
+import requests, json, io, os
 from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from urllib.parse import quote
@@ -10,7 +10,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
 # ============================================================
-# NOOR CYBER WORLD - FINAL APP.PY
+# NOOR CYBER WORLD - FINAL APP.PY WITH LOGO & PERFECT ALIGNMENT
 # ============================================================
 
 st.set_page_config(
@@ -206,7 +206,7 @@ def post_api(payload):
         return False, str(e)
 
 # ============================================================
-# STYLE + HEADER ADJUSTMENT
+# STYLING & PERFECT HEADER WITH 1INCH LOGO
 # ============================================================
 
 st.markdown("""
@@ -221,30 +221,57 @@ st.markdown("""
     color:#f8fafc;
     font-family:Inter,sans-serif;
 }
+
+/* Extra top padding so header never gets cut off by browser frame */
 .block-container{
     max-width:1450px;
-    padding-top:2.5rem !important; /* Fixed spacing to bring header fully into view */
-    padding-bottom:3rem;
+    padding-top: 5.5rem !important;
+    padding-bottom: 3rem;
 }
 
-.nc-header{
-    text-align:center;
-    padding:5px 10px 15px;
-    margin-bottom:10px;
+.nc-header-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 15px;
 }
+
+.nc-logo-img {
+    width: 72px;  /* Exactly 1 inch (96DPI standard: 1 in = 72px - 96px screen fit) */
+    height: 72px;
+    object-fit: contain;
+    filter: drop-shadow(0px 0px 8px rgba(34,211,238,0.5));
+}
+
+.nc-header-text {
+    text-align: left;
+}
+
 .nc-title{
-    font-family:Orbitron,Arial,sans-serif;
-    font-size:36px;
-    line-height:1.2;
-    font-weight:800;
-    letter-spacing:3px;
-    color:#22d3ee;
-    text-shadow:0 0 18px rgba(34,211,238,.35);
+    font-family: Orbitron, Arial, sans-serif;
+    font-size: 36px;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: #22d3ee;
+    text-shadow: 0 0 16px rgba(34,211,238,0.4);
 }
+
 .nc-main-title{
-    font-size:19px;font-weight:800;letter-spacing:2px;color:white;margin-top:4px
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #ffffff;
+    margin-top: 4px;
 }
-.nc-sub{font-size:11px;letter-spacing:2px;color:#94a3b8;margin-top:4px}
+
+.nc-sub{
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #94a3b8;
+    margin-top: 4px;
+}
 
 .nc-top{
     background:rgba(15,23,42,.88);
@@ -274,11 +301,26 @@ div[data-testid="stMetric"]{
 }
 .stButton>button{border-radius:9px;font-weight:700}
 </style>
+""", unsafe_allow_html=True)
 
-<div class="nc-header">
-  <div class="nc-title">NOOR CYBER WORLD</div>
-  <div class="nc-main-title">CUSTOMER MANAGEMENT SYSTEM</div>
-  <div class="nc-sub">DIGITAL SERVICE • MAHA E-SEVA KENDRA • SMART RECORD</div>
+# Check if logo.png exists, otherwise display title gracefully
+logo_html = ""
+if os.path.exists("logo.png"):
+    import base64
+    with open("logo.png", "rb") as image_file:
+        encoded_logo = base64.b64encode(image_file.read()).decode()
+    logo_html = f'<img src="data:image/png;base64,{encoded_logo}" class="nc-logo-img" alt="Logo">'
+else:
+    logo_html = '<img src="logo.png" class="nc-logo-img" alt="Logo">'
+
+st.markdown(f"""
+<div class="nc-header-container">
+  {logo_html}
+  <div class="nc-header-text">
+    <div class="nc-title">NOOR CYBER WORLD</div>
+    <div class="nc-main-title">CUSTOMER MANAGEMENT SYSTEM</div>
+    <div class="nc-sub">DIGITAL SERVICE • MAHA E-SEVA KENDRA • SMART RECORD</div>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -460,7 +502,7 @@ with tab1:
     st.markdown("---")
 
     # ========================================================
-    # PERFECTLY ALIGNED FORM (LEFT & RIGHT BALANCED)
+    # ENTRY FORM (LEFT & RIGHT BALANCED)
     # ========================================================
 
     editing = st.session_state.editing_row is not None
@@ -491,7 +533,6 @@ with tab1:
         unsafe_allow_html=True
     )
 
-    # 2 Equal Columns for Balanced Layout
     col_left, col_right = st.columns(2)
 
     with col_left:
