@@ -392,16 +392,7 @@ with tab1:
     if st.session_state.recalled_name:
         st.markdown(f"<div class='nc-green-text'>✓ Existing Customer: {st.session_state.recalled_name}</div>", unsafe_allow_html=True)
 
-    # Add-service rows. The button changes row count; actual saving is one operation.
-    c_add, c_hint = st.columns([1,4])
-    with c_add:
-        if st.button("➕ ADD SERVICE", use_container_width=True):
-            st.session_state.service_count += 1
-            st.session_state.service_values.append(BASE_SERVICES[0])
-            st.session_state.service_amounts.append(0)
-            st.rerun()
-    with c_hint:
-        st.caption("One customer can have multiple services. They will be stored together with commas and one total amount.")
+  
 
     with st.form("entry_form", clear_on_submit=False):
         name = st.text_input("Customer Name *", value=st.session_state.recalled_name, key="entry_name")
@@ -421,7 +412,16 @@ with tab1:
                 service_names.append(s)
             with b:
                 service_amounts.append(st.number_input(f"Amount {i+1} (₹)", min_value=0, step=10, key=f"svc_amt_{i}"))
-
+  # Add-service rows. The button changes row count; actual saving is one operation.
+    c_add, c_hint = st.columns([1,4])
+    with c_add:
+        if st.button("➕ ADD SERVICE", use_container_width=True):
+            st.session_state.service_count += 1
+            st.session_state.service_values.append(BASE_SERVICES[0])
+            st.session_state.service_amounts.append(0)
+            st.rerun()
+    with c_hint:
+        st.caption("One customer can have multiple services. They will be stored together with commas and one total amount.")
         amount = int(sum(service_amounts))
         st.markdown(f"**TOTAL SERVICE AMOUNT: ₹ {amount:,}**")
         net_amount = st.number_input("Net Income / Profit (₹) *", min_value=0, step=10, key="entry_net")
