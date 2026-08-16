@@ -108,7 +108,6 @@ def clean_df(df):
     for col in ["name", "mobile", "service", "expiry"]:
         df[col] = df[col].fillna("").astype(str).str.strip()
 
-    # IMPORTANT: do not let pandas shift the date because of local timezone.
     raw = df["created_at"].fillna("").astype(str).str.strip()
     df["created_at"] = raw.str[:10]
 
@@ -348,7 +347,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 # ============================================================
-# TAB 1
+# TAB 1 - TODAY'S ENTRIES
 # ============================================================
 
 with tab1:
@@ -373,17 +372,22 @@ with tab1:
     if day_df.empty:
         st.info("ℹ️ No entries recorded for this date yet.")
     else:
-        # Create action columns for edit/delete
-        # Pre-formatting values for better presentation
-        table_df = day_df.drop(columns=["_row_number"]).copy()
-        
-        for col in ["amount", "net_amount", "cash", "credit"]:
-            table_df[col] = table_df[col].map(lambda x: f"₹ {float(x):,.0f}")
-            
-        # Displaying actions row-by-row before the dataframe
+        # Table Header with Left Action Buttons
+        h_act, h_date, h_name, h_mob, h_serv, h_amt, h_net, h_cash, h_cred, h_exp = st.columns([0.8, 1, 1.8, 1.2, 2.5, 1, 1, 1, 1, 1])
+        h_act.markdown("**Actions**")
+        h_date.markdown("**Date**")
+        h_name.markdown("**Name**")
+        h_mob.markdown("**Mobile**")
+        h_serv.markdown("**Service**")
+        h_amt.markdown("**Amount**")
+        h_net.markdown("**Net Profit**")
+        h_cash.markdown("**Cash**")
+        h_cred.markdown("**Credit**")
+        h_exp.markdown("**Expiry**")
+        st.markdown("<div style='height:2px; background:rgba(34,211,238,0.3); margin:4px 0 10px;'></div>", unsafe_allow_html=True)
+
         for index, row in day_df.iterrows():
             rn = int(row["_row_number"])
-            # Action buttons columns (Actions, Date, Name, ...)
             c_act, c_date, c_name, c_mob, c_serv, c_amt, c_net, c_cash, c_cred, c_exp = st.columns([0.8, 1, 1.8, 1.2, 2.5, 1, 1, 1, 1, 1])
             
             with c_act:
@@ -400,7 +404,6 @@ with tab1:
             
             with c_date: st.write(row['created_at'])
             
-            # Apply color style conditionally for credit/paid
             cred_float = float(row['credit'])
             with c_name:
                 text_cls = "nc-red" if cred_float > 0 else "nc-green"
@@ -417,7 +420,6 @@ with tab1:
             
             st.markdown("<div style='height:1px; background:rgba(255,255,255,0.05); margin:2px 0 6px;'></div>", unsafe_allow_html=True)
 
-    # Delete confirmation popup-style block
     if st.session_state.confirm_delete:
         rn = st.session_state.confirm_delete
         st.warning("⚠️ Confirm deletion of this customer entry.")
@@ -446,7 +448,6 @@ with tab1:
     editing = st.session_state.editing_row is not None
     old = st.session_state.editing_row or {}
 
-    # When editing an entry, prepare its service list once.
     if editing and not st.session_state.get("editing_services_loaded", False):
         old_services = [x.strip() for x in str(old.get("service", "")).split(",") if x.strip()]
         if not old_services:
@@ -472,7 +473,6 @@ with tab1:
         unsafe_allow_html=True
     )
 
-    # ---------------- MOBILE + CUSTOMER TYPE ----------------
     left, right = st.columns(2)
 
     with left:
@@ -512,7 +512,6 @@ with tab1:
                 disabled=unknown_customer
             ).strip()
 
-    # ---------------- MULTIPLE SERVICES ----------------
     st.markdown("<div style='font-weight:700;margin:8px 0 4px'>Services</div>", unsafe_allow_html=True)
 
     svcs = services()
@@ -559,7 +558,6 @@ with tab1:
         service_values.append(selected)
         total_service_amount += int(svc_amount)
 
-        # ADD SERVICE appears directly below Service 1 / the service list.
         if i == 0:
             if st.button("＋ ADD SERVICE", key="add_service_button", use_container_width=False):
                 st.session_state.service_rows.append({"service": svcs[0], "amount": 0})
@@ -648,7 +646,6 @@ with tab1:
 
             final_service = ", ".join(final_services)
 
-            # Any custom service is automatically remembered in the main service list.
             for svc in final_services:
                 if svc not in BASE_SERVICES and svc not in st.session_state.custom_services:
                     st.session_state.custom_services.append(svc)
@@ -740,8 +737,6 @@ with tab2:
 
         for _, row in credit_df.iterrows():
             rn = int(row["_row_number"])
-            
-            # Simple text instead of green card
             c_info, c_wa, c_cash = st.columns([6,2,2])
 
             with c_info:
@@ -815,7 +810,6 @@ with tab3:
         st.warning(f"⚠️ {len(alerts)} renewal(s) pending.")
         for row,ed,left in alerts:
             date_text = ed.strftime("%d-%m-%Y")
-            # Simple text instead of green card
             c_info, c_wa = st.columns([8,2])
             with c_info:
                 st.markdown(
@@ -922,4 +916,205 @@ with tab4:
             st.info("No expenses recorded for this date.")
 
 # ============================================================
-# TAB 5 - RECORDS
+# TAB 5 - ALL RECORDS & SEARCH
+# ============================================================
+
+with tab5:
+    st.markdown(
+        "<div class='nc-section'>📂 ALL CUSTOMER RECORDS & SEARCH</div>",
+        unsafe_allow_html=True
+    )
+
+    if df.empty:
+        st.info("No records available.")
+    else:
+        q = st.text_input(
+            "🔍 Search Name / Mobile / Service / Date",
+            key="search_records"
+        ).strip().lower()
+
+        # Sort all entries: newest first
+        filtered = df.copy()
+        filtered = filtered.sort_values(by="created_at", ascending=False)
+
+        if q:
+            filtered = filtered[
+                filtered["name"].str.lower().str.contains(q, na=False)
+                | filtered["mobile"].str.lower().str.contains(q, na=False)
+                | filtered["service"].str.lower().str.contains(q, na=False)
+                | filtered["created_at"].str.lower().str.contains(q, na=False)
+            ]
+
+        export = filtered.drop(columns=["_row_number"], errors="ignore")
+
+        b1, b2 = st.columns(2)
+        with b1:
+            st.download_button(
+                "📥 DOWNLOAD CSV",
+                export.to_csv(index=False).encode("utf-8-sig"),
+                "NOOR_CYBER_WORLD_ALL_RECORDS.csv",
+                "text/csv",
+                use_container_width=True
+            )
+
+        with b2:
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=letter,
+                rightMargin=20, leftMargin=20,
+                topMargin=20, bottomMargin=20
+            )
+            styles = getSampleStyleSheet()
+            elements = [
+                Paragraph(
+                    "NOOR CYBER WORLD - ALL CUSTOMER RECORDS",
+                    ParagraphStyle(
+                        "title",
+                        parent=styles["Heading1"],
+                        alignment=1,
+                        fontSize=16
+                    )
+                ),
+                Spacer(1, 10)
+            ]
+
+            rows = [[
+                "Date", "Name", "Mobile", "Service",
+                "Gross", "Net", "Cash", "Credit", "Expiry"
+            ]]
+
+            for _, r in export.iterrows():
+                rows.append([
+                    str(r["created_at"]),
+                    str(r["name"]),
+                    str(r["mobile"]),
+                    str(r["service"]),
+                    f"Rs. {float(r['amount']):.0f}",
+                    f"Rs. {float(r['net_amount']):.0f}",
+                    f"Rs. {float(r['cash']):.0f}",
+                    f"Rs. {float(r['credit']):.0f}",
+                    str(r["expiry"])
+                ])
+
+            tbl = Table(rows, repeatRows=1)
+            tbl.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+                ("FONTSIZE", (0, 0), (-1, -1), 7),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER")
+            ]))
+            elements.append(tbl)
+            doc.build(elements)
+            buffer.seek(0)
+
+            st.download_button(
+                "📄 DOWNLOAD PDF",
+                buffer.getvalue(),
+                "NOOR_CYBER_WORLD_ALL_RECORDS.pdf",
+                "application/pdf",
+                use_container_width=True
+            )
+
+        st.caption(f"Showing {len(filtered)} total records (latest first)")
+
+        # ALL RECORDS TABLE WITH EDIT / DELETE BUTTONS ON THE LEFT SIDE
+        rh_act, rh_date, rh_name, rh_mob, rh_serv, rh_amt, rh_net, rh_cash, rh_cred, rh_exp = st.columns([0.8, 1, 1.8, 1.2, 2.5, 1, 1, 1, 1, 1])
+        rh_act.markdown("**Actions**")
+        rh_date.markdown("**Date**")
+        rh_name.markdown("**Name**")
+        rh_mob.markdown("**Mobile**")
+        rh_serv.markdown("**Service**")
+        rh_amt.markdown("**Amount**")
+        rh_net.markdown("**Net Profit**")
+        rh_cash.markdown("**Cash**")
+        rh_cred.markdown("**Credit**")
+        rh_exp.markdown("**Expiry**")
+        st.markdown("<div style='height:2px; background:rgba(34,211,238,0.3); margin:4px 0 10px;'></div>", unsafe_allow_html=True)
+
+        for _, row in filtered.iterrows():
+            rn = int(row["_row_number"])
+            c_act, c_date, c_name, c_mob, c_serv, c_amt, c_net, c_cash, c_cred, c_exp = st.columns([0.8, 1, 1.8, 1.2, 2.5, 1, 1, 1, 1, 1])
+            
+            with c_act:
+                e_col, d_col = st.columns(2)
+                with e_col:
+                    if st.button("✏️", key=f"rec_edit_{rn}"):
+                        st.session_state.editing_row = row.to_dict()
+                        try:
+                            st.session_state.selected_date = datetime.strptime(
+                                str(row["created_at"])[:10],
+                                "%Y-%m-%d"
+                            ).date()
+                        except Exception:
+                            pass
+                        st.session_state.last_saved_wa = None
+                        st.rerun()
+                with d_col:
+                    if st.button("🗑️", key=f"rec_del_{rn}"):
+                        st.session_state.confirm_delete = rn
+                        st.rerun()
+
+            with c_date: st.write(row['created_at'])
+            
+            cred_float = float(row['credit'])
+            with c_name:
+                text_cls = "nc-red" if cred_float > 0 else "nc-green"
+                st.markdown(f"<span class='{text_cls}'>{row['name']}</span>", unsafe_allow_html=True)
+
+            with c_mob: st.write(row['mobile'])
+            with c_serv: st.write(row['service'])
+            with c_amt: st.write(f"₹ {float(row['amount']):,.0f}")
+            with c_net: st.write(f"₹ {float(row['net_amount']):,.0f}")
+            with c_cash: st.write(f"₹ {float(row['cash']):,.0f}")
+            with c_cred:
+                st.markdown(f"<span class='{text_cls}'>₹ {cred_float:,.0f}</span>", unsafe_allow_html=True)
+            with c_exp: st.write(row['expiry'])
+            
+            st.markdown("<div style='height:1px; background:rgba(255,255,255,0.05); margin:2px 0 6px;'></div>", unsafe_allow_html=True)
+
+# ============================================================
+# GLOBAL DELETE CONFIRMATION
+# ============================================================
+
+if st.session_state.confirm_delete:
+    rn = st.session_state.confirm_delete
+    st.warning(f"⚠️ Confirm delete for Google Sheet row {rn}.")
+    y,n = st.columns(2)
+
+    with y:
+        if st.button(
+            "YES, DELETE ENTRY",
+            key="global_yes_delete",
+            type="primary",
+            use_container_width=True
+        ):
+            ok,msg = post_api({
+                "action":"delete",
+                "row_number":rn
+            })
+            if ok:
+                st.session_state.confirm_delete = None
+                get_records.clear()
+                st.session_state.success_message = "Entry deleted successfully."
+                st.rerun()
+            else:
+                st.error(msg)
+
+    with n:
+        if st.button(
+            "NO, KEEP ENTRY",
+            key="global_no_delete",
+            use_container_width=True
+        ):
+            st.session_state.confirm_delete = None
+            st.rerun()
+
+# ============================================================
+# TOAST
+# ============================================================
+
+if st.session_state.success_message:
+    st.toast(st.session_state.success_message, icon="✅")
+    st.session_state.success_message = None
