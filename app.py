@@ -242,16 +242,12 @@ st.markdown("""
     color:#e2e8f0;margin:8px 0 14px
 }
 .nc-green{
-    background:linear-gradient(145deg,rgba(22,101,52,.30),rgba(15,23,42,.88));
-    border:1px solid rgba(34,197,94,.42);
-    border-left:5px solid #22c55e;
-    border-radius:12px;padding:10px 13px;margin:5px 0
+    color: #22c55e;
+    font-weight: 700;
 }
 .nc-red{
-    background:linear-gradient(145deg,rgba(127,29,29,.30),rgba(15,23,42,.88));
-    border:1px solid rgba(239,68,68,.42);
-    border-left:5px solid #ef4444;
-    border-radius:12px;padding:10px 13px;margin:5px 0
+    color: #ef4444;
+    font-weight: 700;
 }
 div[data-testid="stMetric"]{
     background:linear-gradient(145deg,rgba(15,23,42,.95),rgba(30,41,59,.75));
@@ -377,41 +373,49 @@ with tab1:
     if day_df.empty:
         st.info("ℹ️ No entries recorded for this date yet.")
     else:
-        # Compact table: no giant cards in Records/Dashboard.
-        table = day_df.drop(columns=["_row_number"]).copy()
-        table.columns = [
-            "Date","Name","Mobile","Service",
-            "Amount","Net Profit","Cash","Credit","Expiry"
-        ]
-        for col in ["Amount","Net Profit","Cash","Credit"]:
-            table[col] = table[col].map(lambda x: f"₹ {float(x):,.0f}")
-        st.dataframe(table, use_container_width=True, hide_index=True)
-
-        st.markdown("#### Entry Actions")
-        for _, row in day_df.iterrows():
+        # Create action columns for edit/delete
+        # Pre-formatting values for better presentation
+        table_df = day_df.drop(columns=["_row_number"]).copy()
+        
+        for col in ["amount", "net_amount", "cash", "credit"]:
+            table_df[col] = table_df[col].map(lambda x: f"₹ {float(x):,.0f}")
+            
+        # Displaying actions row-by-row before the dataframe
+        for index, row in day_df.iterrows():
             rn = int(row["_row_number"])
-            cls = "nc-red" if float(row["credit"]) > 0 else "nc-green"
-
-            info, edit_col, del_col = st.columns([8,1,1])
-            with info:
-                st.markdown(
-                    f"""<div class="{cls}">
-                    <b>{row['name']}</b> • {row['mobile']} • {row['service']}
-                    &nbsp; | &nbsp; Amount ₹ {float(row['amount']):,.0f}
-                    &nbsp; | &nbsp; Cash ₹ {float(row['cash']):,.0f}
-                    &nbsp; | &nbsp; Credit ₹ {float(row['credit']):,.0f}
-                    </div>""",
-                    unsafe_allow_html=True
-                )
-            with edit_col:
-                if st.button("✏️", key=f"day_edit_{rn}"):
-                    st.session_state.editing_row = row.to_dict()
-                    st.session_state.editing_services_loaded = False
-                    st.rerun()
-            with del_col:
-                if st.button("🗑️", key=f"day_del_{rn}"):
-                    st.session_state.confirm_delete = rn
-                    st.rerun()
+            # Action buttons columns (Actions, Date, Name, ...)
+            c_act, c_date, c_name, c_mob, c_serv, c_amt, c_net, c_cash, c_cred, c_exp = st.columns([0.8, 1, 1.8, 1.2, 2.5, 1, 1, 1, 1, 1])
+            
+            with c_act:
+                e_col, d_col = st.columns(2)
+                with e_col:
+                    if st.button("✏️", key=f"edit_t1_{rn}"):
+                        st.session_state.editing_row = row.to_dict()
+                        st.session_state.editing_services_loaded = False
+                        st.rerun()
+                with d_col:
+                    if st.button("🗑️", key=f"del_t1_{rn}"):
+                        st.session_state.confirm_delete = rn
+                        st.rerun()
+            
+            with c_date: st.write(row['created_at'])
+            
+            # Apply color style conditionally for credit/paid
+            cred_float = float(row['credit'])
+            with c_name:
+                text_cls = "nc-red" if cred_float > 0 else "nc-green"
+                st.markdown(f"<span class='{text_cls}'>{row['name']}</span>", unsafe_allow_html=True)
+                
+            with c_mob: st.write(row['mobile'])
+            with c_serv: st.write(row['service'])
+            with c_amt: st.write(f"₹ {float(row['amount']):,.0f}")
+            with c_net: st.write(f"₹ {float(row['net_amount']):,.0f}")
+            with c_cash: st.write(f"₹ {float(row['cash']):,.0f}")
+            with c_cred:
+                st.markdown(f"<span class='{text_cls}'>₹ {cred_float:,.0f}</span>", unsafe_allow_html=True)
+            with c_exp: st.write(row['expiry'])
+            
+            st.markdown("<div style='height:1px; background:rgba(255,255,255,0.05); margin:2px 0 6px;'></div>", unsafe_allow_html=True)
 
     # Delete confirmation popup-style block
     if st.session_state.confirm_delete:
@@ -736,21 +740,21 @@ with tab2:
 
         for _, row in credit_df.iterrows():
             rn = int(row["_row_number"])
-            c1,c2,c3 = st.columns([6,2,2])
+            
+            # Simple text instead of green card
+            c_info, c_wa, c_cash = st.columns([6,2,2])
 
-            with c1:
+            with c_info:
                 st.markdown(
-                    f"""<div class="nc-red">
-                    <b>🔴 {row['name']}</b> ({row['mobile']})<br>
-                    Service: <b>{row['service']}</b><br>
-                    Pending Credit:
-                    <b style="font-size:18px;color:#ef4444">₹ {float(row['credit']):,.0f}</b><br>
-                    Date: {row['created_at']}
+                    f"""<div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <b class="nc-red">🔴 {row['name']}</b> ({row['mobile']})<br>
+                    Service: {row['service']}<br>
+                    Pending: <b class="nc-red">₹ {float(row['credit']):,.0f}</b> | Date: {row['created_at']}
                     </div>""",
                     unsafe_allow_html=True
                 )
 
-            with c2:
+            with c_wa:
                 msg = quote(
                     f"Hello {row['name']}, this is a gentle reminder from "
                     f"NOOR CYBER WORLD. Your payment of Rs.{int(row['credit'])} "
@@ -762,7 +766,7 @@ with tab2:
                     use_container_width=True
                 )
 
-            with c3:
+            with c_cash:
                 if st.button(
                     "💵 CASH RECEIVED",
                     key=f"credit_cash_{rn}",
@@ -811,22 +815,27 @@ with tab3:
         st.warning(f"⚠️ {len(alerts)} renewal(s) pending.")
         for row,ed,left in alerts:
             date_text = ed.strftime("%d-%m-%Y")
-            st.markdown(
-                f"""<div class="nc-red">
-                <b>🔴 {row['name']}</b> ({row['mobile']})<br>
-                Service: <b>{row['service']}</b><br>
-                Expiry: <b>{date_text}</b> — {left} days remaining
-                </div>""",
-                unsafe_allow_html=True
-            )
-            msg = quote(
-                f"Hello {row['name']}, your service {row['service']} "
-                f"is expiring on {date_text}. Please visit NOOR CYBER WORLD to renew it."
-            )
-            st.link_button(
-                f"💬 SEND RENEWAL WHATSAPP TO {row['name']}",
-                f"https://wa.me/91{str(row['mobile']).strip()}?text={msg}"
-            )
+            # Simple text instead of green card
+            c_info, c_wa = st.columns([8,2])
+            with c_info:
+                st.markdown(
+                    f"""<div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <b class="nc-red">🔴 {row['name']}</b> ({row['mobile']})<br>
+                    Service: {row['service']}<br>
+                    Expiry: <b class="nc-red">{date_text}</b> — {left} days remaining
+                    </div>""",
+                    unsafe_allow_html=True
+                )
+            with c_wa:
+                msg = quote(
+                    f"Hello {row['name']}, your service {row['service']} "
+                    f"is expiring on {date_text}. Please visit NOOR CYBER WORLD to renew it."
+                )
+                st.link_button(
+                    f"💬 SEND WHATSAPP",
+                    f"https://wa.me/91{str(row['mobile']).strip()}?text={msg}",
+                    use_container_width=True
+                )
 
 # ============================================================
 # TAB 4 - EXPENSES
@@ -893,7 +902,7 @@ with tab4:
                 aa,bb = st.columns([8,1])
                 with aa:
                     st.markdown(
-                        f"""<div class="nc-red">
+                        f"""<div style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color:#ef4444;">
                         <b>💸 {exp.get('title','')}</b>
                         &nbsp; — &nbsp; ₹ {float(exp.get('amount',0)):,.0f}
                         </div>""",
@@ -914,207 +923,3 @@ with tab4:
 
 # ============================================================
 # TAB 5 - RECORDS
-# ============================================================
-
-with tab5:
-    st.markdown(
-        "<div class='nc-section'>📂 CUSTOMER RECORDS & SEARCH</div>",
-        unsafe_allow_html=True
-    )
-
-    if df.empty:
-        st.info("No records available.")
-    else:
-        q = st.text_input(
-            "🔍 Search Name / Mobile / Service",
-            key="search_records"
-        ).strip().lower()
-
-        filtered = df.copy()
-
-        if q:
-            filtered = filtered[
-                filtered["name"].str.lower().str.contains(q,na=False)
-                | filtered["mobile"].str.lower().str.contains(q,na=False)
-                | filtered["service"].str.lower().str.contains(q,na=False)
-            ]
-
-        export = filtered.drop(columns=["_row_number"],errors="ignore")
-
-        b1,b2 = st.columns(2)
-        with b1:
-            st.download_button(
-                "📥 DOWNLOAD CSV",
-                export.to_csv(index=False).encode("utf-8-sig"),
-                "NOOR_CYBER_WORLD_RECORDS.csv",
-                "text/csv",
-                use_container_width=True
-            )
-
-        with b2:
-            buffer = io.BytesIO()
-            doc = SimpleDocTemplate(
-                buffer,
-                pagesize=letter,
-                rightMargin=20,leftMargin=20,
-                topMargin=20,bottomMargin=20
-            )
-            styles = getSampleStyleSheet()
-            elements = [
-                Paragraph(
-                    "NOOR CYBER WORLD - CUSTOMER RECORDS",
-                    ParagraphStyle(
-                        "title",
-                        parent=styles["Heading1"],
-                        alignment=1,
-                        fontSize=16
-                    )
-                ),
-                Spacer(1,10)
-            ]
-
-            rows = [[
-                "Date","Name","Mobile","Service",
-                "Gross","Net","Cash","Credit","Expiry"
-            ]]
-
-            for _,r in export.iterrows():
-                rows.append([
-                    str(r["created_at"]),
-                    str(r["name"]),
-                    str(r["mobile"]),
-                    str(r["service"]),
-                    f"Rs. {float(r['amount']):.0f}",
-                    f"Rs. {float(r['net_amount']):.0f}",
-                    f"Rs. {float(r['cash']):.0f}",
-                    f"Rs. {float(r['credit']):.0f}",
-                    str(r["expiry"])
-                ])
-
-            tbl = Table(rows, repeatRows=1)
-            tbl.setStyle(TableStyle([
-                ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#0f172a")),
-                ("TEXTCOLOR",(0,0),(-1,0),colors.white),
-                ("GRID",(0,0),(-1,-1),0.4,colors.grey),
-                ("FONTSIZE",(0,0),(-1,-1),7),
-                ("ALIGN",(0,0),(-1,-1),"CENTER")
-            ]))
-            elements.append(tbl)
-            doc.build(elements)
-            buffer.seek(0)
-
-            st.download_button(
-                "📄 DOWNLOAD PDF",
-                buffer.getvalue(),
-                "NOOR_CYBER_WORLD_RECORDS.pdf",
-                "application/pdf",
-                use_container_width=True
-            )
-
-        st.caption(f"Showing {len(filtered)} records")
-
-        # Main records table - compact.
-        view = filtered.drop(columns=["_row_number"],errors="ignore").copy()
-        view.columns = [
-            "Date","Name","Mobile","Service",
-            "Amount","Net Profit","Cash","Credit","Expiry"
-        ]
-
-        for col in ["Amount","Net Profit","Cash","Credit"]:
-            view[col] = view[col].map(
-                lambda x: f"₹ {float(x):,.0f}"
-            )
-
-        st.dataframe(
-            view,
-            use_container_width=True,
-            hide_index=True,
-            height=520
-        )
-
-        # Actions are attached immediately below each record,
-        # not hidden in a dropdown.
-        st.markdown("#### ✏️ Edit / Delete")
-
-        for _,row in filtered.iterrows():
-            rn = int(row["_row_number"])
-            cls = "nc-red" if float(row["credit"]) > 0 else "nc-green"
-
-            info,edit_col,delete_col = st.columns([8,1,1])
-
-            with info:
-                st.markdown(
-                    f"""<div class="{cls}">
-                    <b>{row['name']}</b> • {row['mobile']} • {row['service']}
-                    &nbsp; | &nbsp; ₹ {float(row['amount']):,.0f}
-                    &nbsp; | &nbsp; Cash ₹ {float(row['cash']):,.0f}
-                    &nbsp; | &nbsp; Credit ₹ {float(row['credit']):,.0f}
-                    &nbsp; | &nbsp; {row['created_at']}
-                    </div>""",
-                    unsafe_allow_html=True
-                )
-
-            with edit_col:
-                if st.button("✏️", key=f"rec_edit_{rn}"):
-                    st.session_state.editing_row = row.to_dict()
-                    try:
-                        st.session_state.selected_date = datetime.strptime(
-                            str(row["created_at"])[:10],
-                            "%Y-%m-%d"
-                        ).date()
-                    except Exception:
-                        pass
-                    st.session_state.last_saved_wa = None
-                    st.rerun()
-
-            with delete_col:
-                if st.button("🗑️", key=f"rec_del_{rn}"):
-                    st.session_state.confirm_delete = rn
-                    st.rerun()
-
-# ============================================================
-# GLOBAL DELETE CONFIRMATION
-# ============================================================
-
-# If delete was triggered from Records tab, it is handled here too.
-# This section is intentionally at the end so it works after tab rendering.
-if st.session_state.confirm_delete:
-    rn = st.session_state.confirm_delete
-    st.warning(f"⚠️ Confirm delete for Google Sheet row {rn}.")
-    y,n = st.columns(2)
-
-    with y:
-        if st.button(
-            "YES, DELETE ENTRY",
-            key="global_yes_delete",
-            type="primary",
-            use_container_width=True
-        ):
-            ok,msg = post_api({
-                "action":"delete",
-                "row_number":rn
-            })
-            if ok:
-                st.session_state.confirm_delete = None
-                get_records.clear()
-                st.session_state.success_message = "Entry deleted successfully."
-                st.rerun()
-            else:
-                st.error(msg)
-
-    with n:
-        if st.button(
-            "NO, KEEP ENTRY",
-            key="global_no_delete",
-            use_container_width=True
-        ):
-            st.session_state.confirm_delete = None
-            st.rerun()
-
-# ============================================================
-# TOAST
-# ============================================================
-
-if st.session_state.success_message:
-    st.toast(st.session_state.success_message, icon="✅")
-    st.session_state.success_message = None
