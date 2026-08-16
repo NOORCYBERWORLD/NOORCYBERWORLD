@@ -10,7 +10,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
 # ============================================================
-# NOOR CYBER WORLD - FINAL APP.PY WITH LOGO & PERFECT ALIGNMENT
+# NOOR CYBER WORLD - COMPLETE APP WITH CYBER OFFICE BACKGROUND & 2X2 LOGO
 # ============================================================
 
 st.set_page_config(
@@ -206,104 +206,124 @@ def post_api(payload):
         return False, str(e)
 
 # ============================================================
-# STYLING & PERFECT HEADER WITH 1INCH LOGO
+# STYLING: CYBER OFFICE BACKGROUND & 2X2 INCH LOGO
 # ============================================================
 
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
 
-.stApp{
-    background:
-    radial-gradient(circle at 10% 10%,rgba(34,211,238,.08),transparent 28%),
-    radial-gradient(circle at 90% 15%,rgba(59,130,246,.08),transparent 30%),
-    linear-gradient(135deg,#05080f,#0b1220 52%,#07111b);
-    color:#f8fafc;
-    font-family:Inter,sans-serif;
+/* Premium Dynamic Cyber Office Background */
+.stApp {
+    background: 
+        radial-gradient(circle at 15% 15%, rgba(34, 211, 238, 0.12), transparent 35%),
+        radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.12), transparent 40%),
+        radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.08), transparent 45%),
+        linear-gradient(135deg, #030712 0%, #0b1329 50%, #060d19 100%);
+    background-attachment: fixed;
+    color: #f8fafc;
+    font-family: Inter, sans-serif;
 }
 
-/* Extra top padding so header never gets cut off by browser frame */
-.block-container{
-    max-width:1450px;
+/* Container Spacing for Header Clarity */
+.block-container {
+    max-width: 1450px;
     padding-top: 5.5rem !important;
     padding-bottom: 3rem;
 }
 
+/* Header & Logo Container */
 .nc-header-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 20px;
-    margin-bottom: 15px;
+    gap: 25px;
+    margin-bottom: 20px;
 }
 
+/* 2x2 Inch Logo Styling (144px x 144px at standard 96 DPI) */
 .nc-logo-img {
-   width: 144px;  /* Exactly 2 inch (Standard 96 DPI: 2 in = 144px) */
+    width: 144px;
     height: 144px;
     object-fit: contain;
-    filter: drop-shadow(0px 0px 8px rgba(34,211,238,0.5));
+    filter: drop-shadow(0px 0px 12px rgba(34, 211, 238, 0.6));
+    border-radius: 12px;
 }
 
 .nc-header-text {
     text-align: left;
 }
 
-.nc-title{
+.nc-title {
     font-family: Orbitron, Arial, sans-serif;
-    font-size: 36px;
+    font-size: 38px;
     line-height: 1.1;
     font-weight: 800;
     letter-spacing: 3px;
     color: #22d3ee;
-    text-shadow: 0 0 16px rgba(34,211,238,0.4);
+    text-shadow: 0 0 20px rgba(34, 211, 238, 0.5);
 }
 
-.nc-main-title{
-    font-size: 18px;
+.nc-main-title {
+    font-size: 20px;
     font-weight: 800;
-    letter-spacing: 2px;
+    letter-spacing: 2.5px;
     color: #ffffff;
-    margin-top: 4px;
+    margin-top: 5px;
 }
 
-.nc-sub{
-    font-size: 11px;
+.nc-sub {
+    font-size: 12px;
     letter-spacing: 2px;
     color: #94a3b8;
-    margin-top: 4px;
+    margin-top: 5px;
 }
 
-.nc-top{
-    background:rgba(15,23,42,.88);
-    border:1px solid rgba(34,211,238,.25);
-    border-radius:12px;
-    padding:8px 13px;
-    text-align:center;
-    font-size:13px;
-    line-height:1.8;
+/* Glassmorphism Summary Card */
+.nc-top {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    border-radius: 14px;
+    padding: 12px 18px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.8;
 }
-.profit{color:#22c55e;font-weight:800}
-.cash{color:#22c55e;font-weight:800}
-.credit{color:#ef4444;font-weight:800}
 
-.nc-section{
-    font-family:Orbitron,sans-serif;
-    font-size:18px;font-weight:700;
-    color:#e2e8f0;margin:8px 0 14px
-}
-.nc-green{color: #22c55e; font-weight: 700;}
-.nc-red{color: #ef4444; font-weight: 700;}
+.profit { color: #22c55e; font-weight: 800; }
+.cash { color: #22c55e; font-weight: 800; }
+.credit { color: #ef4444; font-weight: 800; }
 
-div[data-testid="stMetric"]{
-    background:linear-gradient(145deg,rgba(15,23,42,.95),rgba(30,41,59,.75));
-    border:1px solid rgba(96,165,250,.20);
-    border-radius:15px;padding:15px
+.nc-section {
+    font-family: Orbitron, sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin: 10px 0 14px;
 }
-.stButton>button{border-radius:9px;font-weight:700}
+
+.nc-green { color: #22c55e; font-weight: 700; }
+.nc-red { color: #ef4444; font-weight: 700; }
+
+/* Metric Cards with Glowing Border Effect */
+div[data-testid="stMetric"] {
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.7));
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    padding: 15px;
+}
+
+.stButton > button {
+    border-radius: 9px;
+    font-weight: 700;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# Check if logo.png exists, otherwise display title gracefully
+# Base64 logo conversion for seamless display
 logo_html = ""
 if os.path.exists("logo.png"):
     import base64
@@ -502,7 +522,7 @@ with tab1:
     st.markdown("---")
 
     # ========================================================
-    # ENTRY FORM (LEFT & RIGHT BALANCED)
+    # ENTRY FORM (BALANCED 2 COLUMNS)
     # ========================================================
 
     editing = st.session_state.editing_row is not None
